@@ -8,60 +8,26 @@ import (
 )
 
 type Hardcoded struct {
-	Text1   string
-	Text2   string
-	Text3   string
-	Text4   string
-	Text5   string
-	Number0 int
-	Number1 int
-	Number2 int
-	Number3 int
-	Number4 int
-	Number5 int
+	Text1, Text2, Text3, Text4, Text5 string
+	Num1, Num2, Num3, Num4, Num5      int
 }
 
 type HardcodedV1 struct {
-	Version int
-	Text1   string
-	Text2   string
-	Text3   string
-	Text4   string
-	Number0 int
-	Number1 int
-	Number2 int
-	Number3 int
-	Number4 int
+	Version                    int
+	Text1, Text2, Text3, Text4 string
+	Num1, Num2, Num3, Num4     int
 }
 
 type HardcodedV2 struct {
-	Version   int
-	Text1     string
-	Text2     string
-	Text3     string
-	Text4     string
-	ExtraText string
-	Number0   int
-	Number1   int
-	Number2   int
-	Number3   int
-	Number4   int
-	Number5   int
+	Version                               int
+	Text1, Text2, Text3, Text4, ExtraText string
+	Num1, Num2, Num3, Num4, Num5          int
 }
 
 type HardcodedV3 struct {
-	Version int
-	Text1   string
-	Text2   string
-	Text3   string
-	Text4   string
-	Text5   string
-	Number0 int
-	Number1 int
-	Number2 int
-	Number3 int
-	Number4 int
-	Number5 int
+	Version                           int
+	Text1, Text2, Text3, Text4, Text5 string
+	Num1, Num2, Num3, Num4, Num5      int
 }
 
 func (hardcoded Hardcoded) MarshalJSON() ([]byte, error) {
@@ -72,12 +38,11 @@ func (hardcoded Hardcoded) MarshalJSON() ([]byte, error) {
 		Text3:   hardcoded.Text3,
 		Text4:   hardcoded.Text4,
 		Text5:   hardcoded.Text5,
-		Number0: hardcoded.Number0,
-		Number1: hardcoded.Number1,
-		Number2: hardcoded.Number2,
-		Number3: hardcoded.Number3,
-		Number4: hardcoded.Number4,
-		Number5: hardcoded.Number5,
+		Num1:    hardcoded.Num1,
+		Num2:    hardcoded.Num2,
+		Num3:    hardcoded.Num3,
+		Num4:    hardcoded.Num4,
+		Num5:    hardcoded.Num5,
 	}
 	return json.Marshal(latest)
 }
@@ -113,11 +78,10 @@ func (hardcoded *Hardcoded) UnmarshalJSON(bytes []byte) error {
 		v2.Text2 = v1.Text2
 		v2.Text3 = v1.Text3
 		v2.Text4 = v1.Text4
-		v2.Number0 = v1.Number0
-		v2.Number1 = v1.Number1
-		v2.Number2 = v1.Number2
-		v2.Number3 = v1.Number3
-		v2.Number4 = v1.Number4
+		v2.Num1 = v1.Num1
+		v2.Num2 = v1.Num2
+		v2.Num3 = v1.Num3
+		v2.Num4 = v1.Num4
 		fallthrough
 	case 2:
 		v3.Text1 = v2.Text1
@@ -125,12 +89,11 @@ func (hardcoded *Hardcoded) UnmarshalJSON(bytes []byte) error {
 		v3.Text3 = v2.Text3
 		v3.Text4 = v2.Text4
 		v3.Text5 = v2.ExtraText
-		v3.Number0 = v2.Number0
-		v3.Number1 = v2.Number1
-		v3.Number2 = v2.Number2
-		v3.Number3 = v2.Number3
-		v3.Number4 = v2.Number4
-		v3.Number5 = v2.Number5
+		v3.Num1 = v2.Num1
+		v3.Num2 = v2.Num2
+		v3.Num3 = v2.Num3
+		v3.Num4 = v2.Num4
+		v3.Num5 = v2.Num5
 		fallthrough
 	case 3:
 	}
@@ -142,182 +105,142 @@ func (hardcoded *Hardcoded) UnmarshalJSON(bytes []byte) error {
 	hardcoded.Text3 = latest.Text3
 	hardcoded.Text4 = latest.Text4
 	hardcoded.Text5 = latest.Text5
-	hardcoded.Number0 = latest.Number0
-	hardcoded.Number1 = latest.Number1
-	hardcoded.Number2 = latest.Number2
-	hardcoded.Number3 = latest.Number3
-	hardcoded.Number4 = latest.Number4
-	hardcoded.Number5 = latest.Number5
+	hardcoded.Num1 = latest.Num1
+	hardcoded.Num2 = latest.Num2
+	hardcoded.Num3 = latest.Num3
+	hardcoded.Num4 = latest.Num4
+	hardcoded.Num5 = latest.Num5
 
 	return nil
 }
 
 type Dynamic struct {
-	Text1   string
-	Text2   string
-	Text3   string
-	Text4   string
-	Text5   string
-	Number0 int
-	Number1 int
-	Number2 int
-	Number3 int
-	Number4 int
-	Number5 int
+	Text1, Text2, Text3, Text4, Text5 string
+	Num1, Num2, Num3, Num4, Num5      int
 }
 
 type DynamicV1 struct {
-	Version int
-	Text1   string
-	Text2   string
-	Text3   string
-	Text4   string
-	Number0 int
-	Number1 int
-	Number2 int
-	Number3 int
-	Number4 int
+	Text1, Text2, Text3, Text4 string
+	Num1, Num2, Num3, Num4     int
 }
 
 type DynamicV2 struct {
-	Version   int
-	Text1     string
-	Text2     string
-	Text3     string
-	Text4     string
-	ExtraText string
-	Number0   int
-	Number1   int
-	Number2   int
-	Number3   int
-	Number4   int
-	Number5   int
+	Text1, Text2, Text3, Text4, ExtraText string
+	Num1, Num2, Num3, Num4, Num5          int
 }
 
 type DynamicV3 struct {
-	Version int
-	Text1   string
-	Text2   string
-	Text3   string
-	Text4   string
-	Text5   string
-	Number0 int
-	Number1 int
-	Number2 int
-	Number3 int
-	Number4 int
-	Number5 int
+	Text1, Text2, Text3, Text4, Text5 string
+	Num1, Num2, Num3, Num4, Num5      int
 }
 
 func (dynamic Dynamic) MarshalJSON() ([]byte, error) {
 	return Marshal(dynamic)
 }
 
-func TestHardcodedMarshal(t *testing.T) {
-	value := Hardcoded{
-		Text1:   "hello",
-		Text2:   "hello",
-		Text3:   "hello",
-		Text4:   "hello",
-		Text5:   "hello",
-		Number0: 42,
-		Number1: 42,
-		Number2: 42,
-		Number3: 42,
-		Number4: 42,
-		Number5: 42,
-	}
-
-	data, err := json.Marshal(value)
-	if err != nil {
-		t.Fatal("unexpected err:", err)
-	}
-
-	str := string(data)
-	if !strings.Contains(str, `"Version":3`) {
-		t.Error("wrong data:", str)
-	}
-	if strings.Count(str, `"Version"`) != 1 {
-		t.Error("wrong data:", str)
-	}
+type DynamicOptimized struct {
+	Text1, Text2, Text3, Text4, Text5 string
+	Num1, Num2, Num3, Num4, Num5      int
 }
 
-func TestDynamicMarshal(t *testing.T) {
-	ResetRegistry()
-	Register(Dynamic{}, DynamicV1{}, DynamicV2{}, DynamicV3{})
-
-	value := Dynamic{
-		Text1:   "hello",
-		Text2:   "hello",
-		Text3:   "hello",
-		Text4:   "hello",
-		Text5:   "hello",
-		Number0: 42,
-		Number1: 42,
-		Number2: 42,
-		Number3: 42,
-		Number4: 42,
-		Number5: 42,
-	}
-
-	data, err := json.Marshal(value)
-	if err != nil {
-		t.Fatal("unexpected err:", err)
-	}
-
-	str := string(data)
-	if !strings.Contains(str, `"Version":3`) {
-		t.Error("wrong data:", str)
-	}
-	if strings.Count(str, `"Version"`) != 1 {
-		t.Error("wrong data:", str)
-	}
+type DynamicOptimizedV1 struct {
+	Version                    int
+	Text1, Text2, Text3, Text4 string
+	Num1, Num2, Num3, Num4     int
 }
 
-func BenchmarkHardcodedMarshal(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		value := Hardcoded{
-			Text1:   "hello",
-			Text2:   "hello",
-			Text3:   "hello",
-			Text4:   "hello",
-			Text5:   "hello",
-			Number0: i,
-			Number1: i,
-			Number2: i,
-			Number3: i,
-			Number4: i,
-			Number5: i,
-		}
-		_, err := json.Marshal(value)
+type DynamicOptimizedV2 struct {
+	Version                               int
+	Text1, Text2, Text3, Text4, ExtraText string
+	Num1, Num2, Num3, Num4, Num5          int
+}
+
+type DynamicOptimizedV3 struct {
+	Version                           int
+	Text1, Text2, Text3, Text4, Text5 string
+	Num1, Num2, Num3, Num4, Num5      int
+}
+
+func (dynamic DynamicOptimized) MarshalJSON() ([]byte, error) {
+	return Marshal(dynamic)
+}
+
+func TestBenchMarshal(t *testing.T) {
+	test := func(t *testing.T, value interface{}) {
+		data, err := json.Marshal(value)
 		if err != nil {
-			b.Fatal("unexpected err:", err)
+			t.Fatal("unexpected err:", err)
+		}
+
+		str := string(data)
+		if strings.Count(str, `"Version"`) != 1 {
+			t.Fatal("wrong data:", str)
+		}
+		if !strings.Contains(str, `"Version":3`) {
+			t.Fatal("wrong data:", str)
+		}
+		if !strings.Contains(str, `"Text1":"hello"`) {
+			t.Fatal("wrong data:", str)
+		}
+		if !strings.Contains(str, `"Num1":42`) {
+			t.Fatal("wrong data:", str)
 		}
 	}
+
+	t.Run("Hardcoded", func(t *testing.T) {
+		test(t, Hardcoded{
+			Text1: "hello", Text2: "hello", Text3: "hello", Text4: "hello", Text5: "hello",
+			Num1: 42, Num2: 42, Num3: 42, Num4: 42, Num5: 42,
+		})
+	})
+	t.Run("Dynamic", func(t *testing.T) {
+		ResetRegistry()
+		Register(Dynamic{}, DynamicV1{}, DynamicV2{}, DynamicV3{})
+		test(t, Dynamic{
+			Text1: "hello", Text2: "hello", Text3: "hello", Text4: "hello", Text5: "hello",
+			Num1: 42, Num2: 42, Num3: 42, Num4: 42, Num5: 42,
+		})
+	})
+	t.Run("DynamicOptimized", func(t *testing.T) {
+		ResetRegistry()
+		Register(DynamicOptimized{}, DynamicOptimizedV1{}, DynamicOptimizedV2{}, DynamicOptimizedV3{})
+		test(t, DynamicOptimized{
+			Text1: "hello", Text2: "hello", Text3: "hello", Text4: "hello", Text5: "hello",
+			Num1: 42, Num2: 42, Num3: 42, Num4: 42, Num5: 42,
+		})
+	})
 }
 
-func BenchmarkDynamicMarshal(b *testing.B) {
-	ResetRegistry()
-	Register(Dynamic{}, DynamicV1{}, DynamicV2{}, DynamicV3{})
-	b.ResetTimer()
-
-	for i := 0; i < b.N; i++ {
-		value := Dynamic{
-			Text1:   "hello",
-			Text2:   "hello",
-			Text3:   "hello",
-			Text4:   "hello",
-			Text5:   "hello",
-			Number0: i,
-			Number1: i,
-			Number2: i,
-			Number3: i,
-			Number4: i,
-			Number5: i,
-		}
-		_, err := json.Marshal(value)
-		if err != nil {
-			b.Fatal("unexpected err:", err)
+func BenchmarkMarshal(b *testing.B) {
+	bench := func(b *testing.B, value interface{}) {
+		for i := 0; i < b.N; i++ {
+			_, err := json.Marshal(value)
+			if err != nil {
+				b.Fatal("unexpected err:", err)
+			}
 		}
 	}
+
+	b.Run("Hardcoded", func(b *testing.B) {
+		bench(b, Hardcoded{
+			Text1: "hello", Text2: "hello", Text3: "hello", Text4: "hello", Text5: "hello",
+			Num1: 42, Num2: 42, Num3: 42, Num4: 42, Num5: 42,
+		})
+	})
+	b.Run("Dynamic", func(b *testing.B) {
+		ResetRegistry()
+		Register(Dynamic{}, DynamicV1{}, DynamicV2{}, DynamicV3{})
+		bench(b, Dynamic{
+			Text1: "hello", Text2: "hello", Text3: "hello", Text4: "hello", Text5: "hello",
+			Num1: 42, Num2: 42, Num3: 42, Num4: 42, Num5: 42,
+		})
+	})
+	b.Run("DynamicOptimized", func(b *testing.B) {
+		ResetRegistry()
+		Register(DynamicOptimized{}, DynamicOptimizedV1{}, DynamicOptimizedV2{}, DynamicOptimizedV3{})
+		bench(b, DynamicOptimized{
+			Text1: "hello", Text2: "hello", Text3: "hello", Text4: "hello", Text5: "hello",
+			Num1: 42, Num2: 42, Num3: 42, Num4: 42, Num5: 42,
+		})
+	})
 }
