@@ -2,6 +2,7 @@ package vjson
 
 import (
 	"encoding/json"
+	"strings"
 	"testing"
 )
 
@@ -14,12 +15,16 @@ func (s Simple) MarshalJSON() ([]byte, error) {
 	return Marshal(s)
 }
 
+func (s *Simple) UnmarshalJSON(data []byte) error {
+	return Unmarshal(s, data)
+}
+
 type SimpleV1 struct {
 	Text   string
 	Number int
 }
 
-func TestNotRegistered(t *testing.T) {
+func TestMarshalNotRegistered(t *testing.T) {
 	ResetRegistry()
 
 	value := Simple{Text: "hello", Number: 42}
@@ -27,5 +32,74 @@ func TestNotRegistered(t *testing.T) {
 	_, err := json.Marshal(value)
 	if err == nil {
 		t.Fatal("missing error")
+	}
+	if !strings.Contains(err.Error(), "registered") {
+		t.Error("unexpected err:", err)
+	}
+}
+
+func TestUnmarshalNotRegistered(t *testing.T) {
+	ResetRegistry()
+
+	data := []byte(`{"Version":1,"Text":"hello","Number":42}`)
+
+	var value Simple
+	err := json.Unmarshal(data, &value)
+	if err == nil {
+		t.Fatal("missing error")
+	}
+	if !strings.Contains(err.Error(), "registered") {
+		t.Error("unexpected err:", err)
+	}
+}
+
+func TestNegativeVersion(t *testing.T) {
+	ResetRegistry()
+	Register(Simple{}, SimpleV1{})
+
+	data := []byte(`{"Version":-1,"Text":"hello","Number":42}`)
+
+	var value Simple
+	err := json.Unmarshal(data, &value)
+	if err == nil {
+		t.Fatal("missing error")
+	}
+	if !strings.Contains(err.Error(), "negative") {
+		t.Error("unexpected err:", err)
+	}
+}
+
+func TestUnsupportedVersion(t *testing.T) {
+	ResetRegistry()
+	Register(Simple{}, SimpleV1{})
+
+	data := []byte(`{"Version":100,"Text":"hello","Number":42}`)
+
+	var value Simple
+	err := json.Unmarshal(data, &value)
+	if err == nil {
+		t.Fatal("missing error")
+	}
+	if !strings.Contains(err.Error(), "unsupported") {
+		t.Error("unexpected err:", err)
+	}
+}
+
+func TestUnmarshalSimple(t *testing.T) {
+	ResetRegistry()
+	Register(Simple{}, SimpleV1{})
+
+	data := []byte(`{"Version":1,"Text":"hello","Number":42}`)
+
+	var value Simple
+	err := json.Unmarshal(data, &value)
+	if err != nil {
+		t.Fatal("unexpected err:", err)
+	}
+	if value.Text != "hello" {
+		t.Errorf("wrong text: %+v", value)
+	}
+	if value.Number != 42 {
+		t.Errorf("wrong number: %+v", value)
 	}
 }
