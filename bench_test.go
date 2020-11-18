@@ -2,7 +2,6 @@ package vjson
 
 import (
 	"encoding/json"
-	"fmt"
 	"strings"
 	"testing"
 )
@@ -30,7 +29,9 @@ type HardcodedV3 struct {
 	Num1, Num2, Num3, Num4, Num5      int
 }
 
-func (hardcoded Hardcoded) MarshalJSON() ([]byte, error) {
+type HardcodedByValue Hardcoded
+
+func (hardcoded HardcodedByValue) MarshalJSON() ([]byte, error) {
 	latest := HardcodedV3{
 		Version: 3,
 		Text1:   hardcoded.Text1,
@@ -47,71 +48,23 @@ func (hardcoded Hardcoded) MarshalJSON() ([]byte, error) {
 	return json.Marshal(latest)
 }
 
-func (hardcoded *Hardcoded) UnmarshalJSON(bytes []byte) error {
-	version, err := unmarshalVersion(bytes)
-	if err != nil {
-		return err
+type HardcodedByPointer Hardcoded
+
+func (hardcoded *HardcodedByPointer) MarshalJSON() ([]byte, error) {
+	latest := HardcodedV3{
+		Version: 3,
+		Text1:   hardcoded.Text1,
+		Text2:   hardcoded.Text2,
+		Text3:   hardcoded.Text3,
+		Text4:   hardcoded.Text4,
+		Text5:   hardcoded.Text5,
+		Num1:    hardcoded.Num1,
+		Num2:    hardcoded.Num2,
+		Num3:    hardcoded.Num3,
+		Num4:    hardcoded.Num4,
+		Num5:    hardcoded.Num5,
 	}
-
-	var v1 HardcodedV1
-	var v2 HardcodedV2
-	var v3 HardcodedV3
-
-	switch version {
-	case 1:
-		err = json.Unmarshal(bytes, &v1)
-	case 2:
-		err = json.Unmarshal(bytes, &v2)
-	case 3:
-		err = json.Unmarshal(bytes, &v3)
-	default:
-		err = fmt.Errorf("unsupported version: %d", version)
-	}
-
-	if err != nil {
-		return err
-	}
-
-	switch version {
-	case 1:
-		v2.Text1 = v1.Text1
-		v2.Text2 = v1.Text2
-		v2.Text3 = v1.Text3
-		v2.Text4 = v1.Text4
-		v2.Num1 = v1.Num1
-		v2.Num2 = v1.Num2
-		v2.Num3 = v1.Num3
-		v2.Num4 = v1.Num4
-		fallthrough
-	case 2:
-		v3.Text1 = v2.Text1
-		v3.Text2 = v2.Text2
-		v3.Text3 = v2.Text3
-		v3.Text4 = v2.Text4
-		v3.Text5 = v2.ExtraText
-		v3.Num1 = v2.Num1
-		v3.Num2 = v2.Num2
-		v3.Num3 = v2.Num3
-		v3.Num4 = v2.Num4
-		v3.Num5 = v2.Num5
-		fallthrough
-	case 3:
-	}
-
-	latest := &v3
-
-	hardcoded.Text1 = latest.Text1
-	hardcoded.Text2 = latest.Text2
-	hardcoded.Text3 = latest.Text3
-	hardcoded.Text4 = latest.Text4
-	hardcoded.Text5 = latest.Text5
-	hardcoded.Num1 = latest.Num1
-	hardcoded.Num2 = latest.Num2
-	hardcoded.Num3 = latest.Num3
-	hardcoded.Num4 = latest.Num4
-	hardcoded.Num5 = latest.Num5
-
-	return nil
+	return json.Marshal(latest)
 }
 
 type Dynamic struct {
@@ -134,38 +87,25 @@ type DynamicV3 struct {
 	Num1, Num2, Num3, Num4, Num5      int
 }
 
-func (dynamic Dynamic) MarshalJSON() ([]byte, error) {
-	return Marshal(dynamic)
-}
-
-type DynamicOptimized struct {
-	Text1, Text2, Text3, Text4, Text5 string
-	Num1, Num2, Num3, Num4, Num5      int
-}
-
-type DynamicOptimizedV1 struct {
-	Version                    int
-	Text1, Text2, Text3, Text4 string
-	Num1, Num2, Num3, Num4     int
-}
-
-type DynamicOptimizedV2 struct {
-	Version                               int
-	Text1, Text2, Text3, Text4, ExtraText string
-	Num1, Num2, Num3, Num4, Num5          int
-}
-
 type DynamicOptimizedV3 struct {
 	Version                           int
 	Text1, Text2, Text3, Text4, Text5 string
 	Num1, Num2, Num3, Num4, Num5      int
 }
 
-func (dynamic DynamicOptimized) MarshalJSON() ([]byte, error) {
+type DynamicByValue Dynamic
+
+func (dynamic DynamicByValue) MarshalJSON() ([]byte, error) {
 	return Marshal(dynamic)
 }
 
-func TestBenchMarshal(t *testing.T) {
+type DynamicByPointer Dynamic
+
+func (dynamic *DynamicByPointer) MarshalJSON() ([]byte, error) {
+	return Marshal(dynamic)
+}
+
+func TestMarshal(t *testing.T) {
 	test := func(t *testing.T, value interface{}) {
 		data, err := json.Marshal(value)
 		if err != nil {
@@ -187,24 +127,46 @@ func TestBenchMarshal(t *testing.T) {
 		}
 	}
 
-	t.Run("Hardcoded", func(t *testing.T) {
-		test(t, Hardcoded{
+	t.Run("HardcodedByValue", func(t *testing.T) {
+		test(t, HardcodedByValue{
 			Text1: "hello", Text2: "hello", Text3: "hello", Text4: "hello", Text5: "hello",
 			Num1: 42, Num2: 42, Num3: 42, Num4: 42, Num5: 42,
 		})
 	})
-	t.Run("Dynamic", func(t *testing.T) {
+	t.Run("DynamicByValue", func(t *testing.T) {
 		ResetRegistry()
-		Register(Dynamic{}, DynamicV1{}, DynamicV2{}, DynamicV3{})
-		test(t, Dynamic{
+		Register(DynamicByValue{}, DynamicV1{}, DynamicV2{}, DynamicV3{})
+		test(t, DynamicByValue{
 			Text1: "hello", Text2: "hello", Text3: "hello", Text4: "hello", Text5: "hello",
 			Num1: 42, Num2: 42, Num3: 42, Num4: 42, Num5: 42,
 		})
 	})
-	t.Run("DynamicOptimized", func(t *testing.T) {
+	t.Run("DynamicOptimizedByValue", func(t *testing.T) {
 		ResetRegistry()
-		Register(DynamicOptimized{}, DynamicOptimizedV1{}, DynamicOptimizedV2{}, DynamicOptimizedV3{})
-		test(t, DynamicOptimized{
+		Register(DynamicByValue{}, DynamicV1{}, DynamicV2{}, DynamicOptimizedV3{})
+		test(t, DynamicByValue{
+			Text1: "hello", Text2: "hello", Text3: "hello", Text4: "hello", Text5: "hello",
+			Num1: 42, Num2: 42, Num3: 42, Num4: 42, Num5: 42,
+		})
+	})
+	t.Run("HardcodedByPointer", func(t *testing.T) {
+		test(t, &HardcodedByPointer{
+			Text1: "hello", Text2: "hello", Text3: "hello", Text4: "hello", Text5: "hello",
+			Num1: 42, Num2: 42, Num3: 42, Num4: 42, Num5: 42,
+		})
+	})
+	t.Run("DynamicByPointer", func(t *testing.T) {
+		ResetRegistry()
+		Register(DynamicByPointer{}, DynamicV1{}, DynamicV2{}, DynamicV3{})
+		test(t, &DynamicByPointer{
+			Text1: "hello", Text2: "hello", Text3: "hello", Text4: "hello", Text5: "hello",
+			Num1: 42, Num2: 42, Num3: 42, Num4: 42, Num5: 42,
+		})
+	})
+	t.Run("DynamicOptimizedByPointer", func(t *testing.T) {
+		ResetRegistry()
+		Register(DynamicByPointer{}, DynamicV1{}, DynamicV2{}, DynamicOptimizedV3{})
+		test(t, &DynamicByPointer{
 			Text1: "hello", Text2: "hello", Text3: "hello", Text4: "hello", Text5: "hello",
 			Num1: 42, Num2: 42, Num3: 42, Num4: 42, Num5: 42,
 		})
@@ -221,24 +183,46 @@ func BenchmarkMarshal(b *testing.B) {
 		}
 	}
 
-	b.Run("Hardcoded", func(b *testing.B) {
-		bench(b, Hardcoded{
+	b.Run("HardcodedByValue", func(b *testing.B) {
+		bench(b, HardcodedByValue{
 			Text1: "hello", Text2: "hello", Text3: "hello", Text4: "hello", Text5: "hello",
 			Num1: 42, Num2: 42, Num3: 42, Num4: 42, Num5: 42,
 		})
 	})
-	b.Run("Dynamic", func(b *testing.B) {
+	b.Run("DynamicByValue", func(b *testing.B) {
 		ResetRegistry()
-		Register(Dynamic{}, DynamicV1{}, DynamicV2{}, DynamicV3{})
-		bench(b, Dynamic{
+		Register(DynamicByValue{}, DynamicV1{}, DynamicV2{}, DynamicV3{})
+		bench(b, DynamicByValue{
 			Text1: "hello", Text2: "hello", Text3: "hello", Text4: "hello", Text5: "hello",
 			Num1: 42, Num2: 42, Num3: 42, Num4: 42, Num5: 42,
 		})
 	})
-	b.Run("DynamicOptimized", func(b *testing.B) {
+	b.Run("DynamicOptimizedByValue", func(b *testing.B) {
 		ResetRegistry()
-		Register(DynamicOptimized{}, DynamicOptimizedV1{}, DynamicOptimizedV2{}, DynamicOptimizedV3{})
-		bench(b, DynamicOptimized{
+		Register(DynamicByValue{}, DynamicV1{}, DynamicV2{}, DynamicOptimizedV3{})
+		bench(b, DynamicByValue{
+			Text1: "hello", Text2: "hello", Text3: "hello", Text4: "hello", Text5: "hello",
+			Num1: 42, Num2: 42, Num3: 42, Num4: 42, Num5: 42,
+		})
+	})
+	b.Run("HardcodedByPointer", func(b *testing.B) {
+		bench(b, &HardcodedByPointer{
+			Text1: "hello", Text2: "hello", Text3: "hello", Text4: "hello", Text5: "hello",
+			Num1: 42, Num2: 42, Num3: 42, Num4: 42, Num5: 42,
+		})
+	})
+	b.Run("DynamicByPointer", func(b *testing.B) {
+		ResetRegistry()
+		Register(DynamicByPointer{}, DynamicV1{}, DynamicV2{}, DynamicV3{})
+		bench(b, &DynamicByPointer{
+			Text1: "hello", Text2: "hello", Text3: "hello", Text4: "hello", Text5: "hello",
+			Num1: 42, Num2: 42, Num3: 42, Num4: 42, Num5: 42,
+		})
+	})
+	b.Run("DynamicOptimizedByPointer", func(b *testing.B) {
+		ResetRegistry()
+		Register(DynamicByPointer{}, DynamicV1{}, DynamicV2{}, DynamicOptimizedV3{})
+		bench(b, &DynamicByPointer{
 			Text1: "hello", Text2: "hello", Text3: "hello", Text4: "hello", Text5: "hello",
 			Num1: 42, Num2: 42, Num3: 42, Num4: 42, Num5: 42,
 		})

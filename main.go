@@ -66,9 +66,14 @@ func Register(prototype interface{}, versionPrototypes ...interface{}) {
 
 func Marshal(inputInterface interface{}) ([]byte, error) {
 	input := reflect.ValueOf(inputInterface)
+
+	if input.Kind() == reflect.Ptr {
+		input = input.Elem()
+	}
+
 	entry, ok := entriesByType[input.Type()]
 	if !ok {
-		return nil, fmt.Errorf("vjson: type not registered: %T", inputInterface)
+		return nil, fmt.Errorf("vjson: type not registered: %v", input.Type())
 	}
 
 	value := reflect.New(entry.marshal.typ)
