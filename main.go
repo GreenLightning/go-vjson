@@ -12,62 +12,74 @@ type mapping struct {
 	dst int
 }
 
-type marshal struct {
-	typ          reflect.Type
+type marshalContext struct {
+	rtype        reflect.Type
 	mappings     []mapping
 	versionField int
 }
 
-type unmarshal struct {
-	typ reflect.Type
+type unmarshalContext struct {
+	mappings []mapping
+}
+
+type versionContext struct {
+	rtype reflect.Type
 }
 
 type entry struct {
-	version             int
-	marshal             marshal
-	unmarshalsByVersion map[int]unmarshal
+	latestVersion int
+	versions      map[int]versionContext
+	marshal       marshalContext
+	unmarshal     unmarshalContext
 }
 
-var entriesByType = make(map[reflect.Type]entry)
+var entryByType = make(map[reflect.Type]entry)
 
 func ResetRegistry() {
-	entriesByType = make(map[reflect.Type]entry)
+	entryByType = make(map[reflect.Type]entry)
 }
 
 func Register(prototype interface{}, versionPrototypes ...interface{}) {
-	var entry entry
-	entry.unmarshalsByVersion = make(map[int]unmarshal)
-
-	var version int
-	var typ reflect.Type
-	for index, versionPrototype := range versionPrototypes {
-		version = index + 1
-		typ = reflect.TypeOf(versionPrototype)
-		var unmarshal unmarshal
-		unmarshal.typ = typ
-		entry.unmarshalsByVersion[version] = unmarshal
-	}
-
 	entryType := reflect.TypeOf(prototype)
 
-	entry.version = version
-	entry.marshal.typ = typ
+	var entry entry
+	entry.latestVersion = len(versionPrototypes)
+	entry.versions = make(map[int]versionContext)
+
+	var lastType reflect.Type
+	for index, versionPrototype := range versionPrototypes {
+		var context versionContext
+		context.rtype = reflect.TypeOf(versionPrototype)
+		entry.versions[index+1] = context
+		lastType = context.rtype
+	}
+
+	entry.marshal.rtype = lastType
 	for i := 0; i < entryType.NumField(); i++ {
 		srcField := entryType.Field(i)
-		dstField, ok := typ.FieldByName(srcField.Name)
+		dstField, ok := lastType.FieldByName(srcField.Name)
 		if ok {
 			mapping := mapping{src: srcField.Index[0], dst: dstField.Index[0]}
 			entry.marshal.mappings = append(entry.marshal.mappings, mapping)
 		}
 	}
 
-	if field, ok := typ.FieldByName("Version"); ok {
+	if field, ok := lastType.FieldByName("Version"); ok {
 		entry.marshal.versionField = field.Index[0]
 	} else {
 		entry.marshal.versionField = -1
 	}
 
-	entriesByType[entryType] = entry
+	for i := 0; i < lastType.NumField(); i++ {
+		srcField := lastType.Field(i)
+		dstField, ok := entryType.FieldByName(srcField.Name)
+		if ok {
+			mapping := mapping{src: srcField.Index[0], dst: dstField.Index[0]}
+			entry.unmarshal.mappings = append(entry.unmarshal.mappings, mapping)
+		}
+	}
+
+	entryByType[entryType] = entry
 }
 
 func Marshal(inputInterface interface{}) ([]byte, error) {
@@ -77,19 +89,17 @@ func Marshal(inputInterface interface{}) ([]byte, error) {
 		input = input.Elem()
 	}
 
-	entry, ok := entriesByType[input.Type()]
+	entry, ok := entryByType[input.Type()]
 	if !ok {
 		return nil, fmt.Errorf("vjson: type not registered: %v", input.Type())
 	}
 
-	value := reflect.New(entry.marshal.typ)
+	value := reflect.New(entry.marshal.rtype)
 	elem := value.Elem()
-	for _, mapping := range entry.marshal.mappings {
-		elem.Field(mapping.dst).Set(input.Field(mapping.src))
-	}
+	copyFields(input, elem, entry.marshal.mappings)
 
 	if entry.marshal.versionField >= 0 {
-		elem.Field(entry.marshal.versionField).Set(reflect.ValueOf(entry.version))
+		elem.Field(entry.marshal.versionField).Set(reflect.ValueOf(entry.latestVersion))
 		return json.Marshal(value.Interface())
 	}
 
@@ -99,12 +109,12 @@ func Marshal(inputInterface interface{}) ([]byte, error) {
 	}
 
 	if string(data) == "{}" {
-		result := fmt.Sprintf(`{"Version":%d}`, entry.version)
+		result := fmt.Sprintf(`{"Version":%d}`, entry.latestVersion)
 		return []byte(result), nil
 	}
 
 	var buffer bytes.Buffer
-	fmt.Fprintf(&buffer, `{"Version":%d,`, entry.version)
+	fmt.Fprintf(&buffer, `{"Version":%d,`, entry.latestVersion)
 	buffer.Write(data[1:])
 	return buffer.Bytes(), nil
 }
@@ -116,7 +126,7 @@ func Unmarshal(valueInterface interface{}, data []byte) error {
 		value = value.Elem()
 	}
 
-	entry, ok := entriesByType[value.Type()]
+	entry, ok := entryByType[value.Type()]
 	if !ok {
 		return fmt.Errorf("vjson: type not registered: %v", value.Type())
 	}
@@ -126,23 +136,25 @@ func Unmarshal(valueInterface interface{}, data []byte) error {
 		return err
 	}
 
-	unmarshal, ok := entry.unmarshalsByVersion[version]
+	currentContext, ok := entry.versions[version]
 	if !ok {
 		return fmt.Errorf("vjson: unsupported version for %v: %d", value.Type(), version)
 	}
 
-	current := reflect.New(unmarshal.typ)
+	current := reflect.New(currentContext.rtype)
 	err = json.Unmarshal(data, current.Interface())
 	if err != nil {
 		return err
 	}
 
-	elem := current.Elem()
-	for _, mapping := range entry.marshal.mappings {
-		value.Field(mapping.src).Set(elem.Field(mapping.dst))
-	}
-
+	copyFields(current.Elem(), value, entry.unmarshal.mappings)
 	return nil
+}
+
+func copyFields(src, dst reflect.Value, mappings []mapping) {
+	for _, mapping := range mappings {
+		dst.Field(mapping.dst).Set(src.Field(mapping.src))
+	}
 }
 
 type versionContainer struct {
