@@ -103,3 +103,46 @@ func TestUnmarshalSimple(t *testing.T) {
 		t.Errorf("wrong number: %+v", value)
 	}
 }
+
+type Multiple struct {
+	B string
+	C string
+	D string
+}
+
+func (value *Multiple) UnmarshalJSON(data []byte) error {
+	return Unmarshal(value, data)
+}
+
+type MultipleV1 struct {
+	A string
+	B string
+}
+
+type MultipleV2 struct {
+	A string
+	B string
+	C string
+}
+
+type MultipleV3 struct {
+	B string
+	C string
+	D string
+}
+
+func TestUnmarshalMultiple(t *testing.T) {
+	ResetRegistry()
+	Register(Multiple{}, MultipleV1{}, MultipleV2{}, MultipleV3{})
+
+	data := []byte(`{"Version":2,"A":"a","B":"b","C":"c"}`)
+
+	var value Multiple
+	err := json.Unmarshal(data, &value)
+	if err != nil {
+		t.Fatal("unexpected err:", err)
+	}
+	if value.B != "b" || value.C != "c" {
+		t.Errorf("wrong value: %+v", value)
+	}
+}

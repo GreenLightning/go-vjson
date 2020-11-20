@@ -23,7 +23,8 @@ type unmarshalContext struct {
 }
 
 type versionContext struct {
-	rtype reflect.Type
+	rtype    reflect.Type
+	mappings []mapping
 }
 
 type entry struct {
@@ -50,6 +51,18 @@ func Register(prototype interface{}, versionPrototypes ...interface{}) {
 	for index, versionPrototype := range versionPrototypes {
 		var context versionContext
 		context.rtype = reflect.TypeOf(versionPrototype)
+
+		if lastType != nil {
+			for i := 0; i < lastType.NumField(); i++ {
+				srcField := lastType.Field(i)
+				dstField, ok := context.rtype.FieldByName(srcField.Name)
+				if ok {
+					mapping := mapping{src: srcField.Index[0], dst: dstField.Index[0]}
+					context.mappings = append(context.mappings, mapping)
+				}
+			}
+		}
+
 		entry.versions[index+1] = context
 		lastType = context.rtype
 	}
@@ -145,6 +158,15 @@ func Unmarshal(valueInterface interface{}, data []byte) error {
 	err = json.Unmarshal(data, current.Interface())
 	if err != nil {
 		return err
+	}
+
+	for version < entry.latestVersion {
+		version++
+		nextContext := entry.versions[version]
+		next := reflect.New(nextContext.rtype)
+		copyFields(current.Elem(), next.Elem(), nextContext.mappings)
+		currentContext = nextContext
+		current = next
 	}
 
 	copyFields(current.Elem(), value, entry.unmarshal.mappings)
