@@ -43,6 +43,13 @@ func ResetRegistry() {
 }
 
 func Register(prototype interface{}, versionPrototypes ...interface{}) {
+	err := RegisterError(prototype, versionPrototypes...)
+	if err != nil {
+		panic(err)
+	}
+}
+
+func RegisterError(prototype interface{}, versionPrototypes ...interface{}) error {
 	entryType := reflect.TypeOf(prototype)
 
 	var entry entry
@@ -62,10 +69,17 @@ func Register(prototype interface{}, versionPrototypes ...interface{}) {
 					srcName = tag
 				}
 				srcField, ok := lastType.FieldByName(srcName)
-				if ok {
-					mapping := mapping{src: srcField.Index[0], dst: dstField.Index[0]}
-					context.mappings = append(context.mappings, mapping)
+				if !ok {
+					continue
 				}
+				if srcField.Type != dstField.Type {
+					if srcField.Name != dstField.Name {
+						return fmt.Errorf("cannot copy field %s (%v) in %v to field %s (%v) in %v because they have different types", srcField.Name, srcField.Type, lastType, dstField.Name, dstField.Type, context.rtype)
+					}
+					return fmt.Errorf("field %s has different types in %v (%v) and %v (%v)", srcField.Name, lastType, srcField.Type, context.rtype, dstField.Type)
+				}
+				mapping := mapping{src: srcField.Index[0], dst: dstField.Index[0]}
+				context.mappings = append(context.mappings, mapping)
 			}
 			sort.Slice(context.mappings, func(i, j int) bool { return context.mappings[i].src < context.mappings[j].src })
 		}
@@ -86,10 +100,14 @@ func Register(prototype interface{}, versionPrototypes ...interface{}) {
 	for i := 0; i < entryType.NumField(); i++ {
 		srcField := entryType.Field(i)
 		dstField, ok := lastType.FieldByName(srcField.Name)
-		if ok {
-			mapping := mapping{src: srcField.Index[0], dst: dstField.Index[0]}
-			entry.marshal.mappings = append(entry.marshal.mappings, mapping)
+		if !ok {
+			continue
 		}
+		if srcField.Type != dstField.Type {
+			return fmt.Errorf("field %s has different types in %v (%v) and %v (%v)", srcField.Name, entryType, srcField.Type, lastType, dstField.Type)
+		}
+		mapping := mapping{src: srcField.Index[0], dst: dstField.Index[0]}
+		entry.marshal.mappings = append(entry.marshal.mappings, mapping)
 	}
 
 	if field, ok := lastType.FieldByName("Version"); ok {
@@ -101,13 +119,15 @@ func Register(prototype interface{}, versionPrototypes ...interface{}) {
 	for i := 0; i < lastType.NumField(); i++ {
 		srcField := lastType.Field(i)
 		dstField, ok := entryType.FieldByName(srcField.Name)
-		if ok {
-			mapping := mapping{src: srcField.Index[0], dst: dstField.Index[0]}
-			entry.unmarshal.mappings = append(entry.unmarshal.mappings, mapping)
+		if !ok {
+			continue
 		}
+		mapping := mapping{src: srcField.Index[0], dst: dstField.Index[0]}
+		entry.unmarshal.mappings = append(entry.unmarshal.mappings, mapping)
 	}
 
 	entryByType[entryType] = entry
+	return nil
 }
 
 func Marshal(inputInterface interface{}) ([]byte, error) {

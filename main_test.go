@@ -289,3 +289,71 @@ func TestUnmarshalEmbedded(t *testing.T) {
 		t.Errorf("wrong value: %+v", value)
 	}
 }
+
+type TypeMismatchA struct {
+	Message string
+}
+
+type TypeMismatchAV1 struct {
+	Message int
+}
+
+func TestRegisterTypeMismatchA(t *testing.T) {
+	ResetRegistry()
+	err := RegisterError(TypeMismatchA{}, TypeMismatchAV1{})
+
+	if err == nil {
+		t.Fatal("missing error")
+	}
+	if !strings.Contains(err.Error(), "field Message has different types") {
+		t.Fatal("unexpected err:", err)
+	}
+}
+
+type TypeMismatchB struct {
+	Message string
+}
+
+type TypeMismatchBV1 struct {
+	Message int
+}
+
+type TypeMismatchBV2 struct {
+	Message string
+}
+
+func TestRegisterTypeMismatchB(t *testing.T) {
+	ResetRegistry()
+	err := RegisterError(TypeMismatchB{}, TypeMismatchBV1{}, TypeMismatchBV2{})
+
+	if err == nil {
+		t.Fatal("missing error")
+	}
+	if !strings.Contains(err.Error(), "field Message has different types") {
+		t.Fatal("unexpected err:", err)
+	}
+}
+
+type TypeMismatchC struct {
+	Message string
+}
+
+type TypeMismatchCV1 struct {
+	OldMessage int
+}
+
+type TypeMismatchCV2 struct {
+	Message string `vjson:"OldMessage"`
+}
+
+func TestRegisterTypeMismatchC(t *testing.T) {
+	ResetRegistry()
+	err := RegisterError(TypeMismatchC{}, TypeMismatchCV1{}, TypeMismatchCV2{})
+
+	if err == nil {
+		t.Fatal("missing error")
+	}
+	if !strings.Contains(err.Error(), "cannot copy field") || !strings.Contains(err.Error(), "different types") {
+		t.Fatal("unexpected err:", err)
+	}
+}
