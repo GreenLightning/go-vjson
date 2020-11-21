@@ -2,6 +2,7 @@ package vjson
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"testing"
@@ -381,19 +382,139 @@ func (v2 *TypeConversionV2) Upgrade(v1 *TypeConversionV1) {
 
 func TestTypeConversion(t *testing.T) {
 	ResetRegistry()
-	err := RegisterError(TypeConversion{}, TypeConversionV1{}, TypeConversionV2{})
-	if err != nil {
-		t.Fatal("unexpected err:", err)
-	}
+	Register(TypeConversion{}, TypeConversionV1{}, TypeConversionV2{})
 
 	data := []byte(`{"Version":1,"Message":42}`)
 
 	var value TypeConversion
-	err = json.Unmarshal(data, &value)
+	err := json.Unmarshal(data, &value)
 	if err != nil {
 		t.Fatal("unexpected err:", err)
 	}
 	if value.Message != "42" {
 		t.Errorf("wrong value: %+v", value)
+	}
+}
+
+type Raw struct {
+	Message string
+}
+
+func (value *Raw) MarshalJSON() ([]byte, error) {
+	return Marshal(value)
+}
+
+func (value *Raw) UnmarshalJSON(data []byte) error {
+	return Unmarshal(value, data)
+}
+
+type RawV1 struct {
+	Message json.RawMessage
+}
+
+func (latest *RawV1) Pack(value *Raw) error {
+	msg, err := json.Marshal(value.Message)
+	if err != nil {
+		return err
+	}
+
+	latest.Message = json.RawMessage(msg)
+	return nil
+}
+
+func (latest *RawV1) Unpack(value *Raw) error {
+	return json.Unmarshal(latest.Message, &value.Message)
+}
+
+func TestMarshalRaw(t *testing.T) {
+	ResetRegistry()
+	Register(Raw{}, RawV1{})
+
+	value := Raw{Message: "hello"}
+
+	data, err := json.Marshal(&value)
+	if err != nil {
+		t.Fatal("unexpected err:", err)
+	}
+
+	str := string(data)
+	if !strings.Contains(str, `"Version":1`) {
+		t.Fatal("wrong data:", str)
+	}
+	if !strings.Contains(str, `"Message":"hello"`) {
+		t.Fatal("wrong data:", str)
+	}
+}
+
+func TestUnmarshalRaw(t *testing.T) {
+	ResetRegistry()
+	Register(Raw{}, RawV1{})
+
+	data := []byte(`{"Version":1,"Message":"hello"}`)
+
+	var value Raw
+	err := json.Unmarshal(data, &value)
+	if err != nil {
+		t.Fatal("unexpected err:", err)
+	}
+	if value.Message != "hello" {
+		t.Errorf("wrong value: %+v", value)
+	}
+}
+
+var testError = errors.New("test error")
+
+type RawError struct {
+	Message string
+}
+
+func (value *RawError) MarshalJSON() ([]byte, error) {
+	return Marshal(value)
+}
+
+func (value *RawError) UnmarshalJSON(data []byte) error {
+	return Unmarshal(value, data)
+}
+
+type RawErrorV1 struct {
+	Message json.RawMessage
+}
+
+func (latest *RawErrorV1) Pack(value *RawError) error {
+	return testError
+}
+
+func (latest *RawErrorV1) Unpack(value *RawError) error {
+	return testError
+}
+
+func TestMarshalRawError(t *testing.T) {
+	ResetRegistry()
+	Register(RawError{}, RawErrorV1{})
+
+	value := RawError{Message: "hello"}
+
+	_, err := json.Marshal(&value)
+	if err == nil {
+		t.Fatal("missing error")
+	}
+	if !errors.Is(err, testError) {
+		t.Fatal("wrong error:", err)
+	}
+}
+
+func TestUnmarshalRawError(t *testing.T) {
+	ResetRegistry()
+	Register(RawError{}, RawErrorV1{})
+
+	data := []byte(`{"Version":1,"Message":"hello"}`)
+
+	var value RawError
+	err := json.Unmarshal(data, &value)
+	if err == nil {
+		t.Fatal("missing error")
+	}
+	if !errors.Is(err, testError) {
+		t.Fatal("wrong error:", err)
 	}
 }

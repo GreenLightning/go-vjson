@@ -15,12 +15,14 @@ type mapping struct {
 
 type marshalContext struct {
 	rtype        reflect.Type
+	packFunc     reflect.Value
 	mappings     []mapping
 	versionField int
 }
 
 type unmarshalContext struct {
-	mappings []mapping
+	unpackFunc reflect.Value
+	mappings   []mapping
 }
 
 type versionContext struct {
@@ -89,9 +91,7 @@ func RegisterError(prototype interface{}, versionPrototypes ...interface{}) erro
 
 		// The upgrade method must have a pointer receiver,
 		// because it is meant to modify the receiver.
-		upgradeReceiverType := reflect.PtrTo(context.rtype)
-		upgradeMethod, ok := upgradeReceiverType.MethodByName("Upgrade")
-		if ok {
+		if upgradeMethod, ok := reflect.PtrTo(context.rtype).MethodByName("Upgrade"); ok {
 			context.upgradeFunc = upgradeMethod.Func
 		}
 
@@ -100,17 +100,21 @@ func RegisterError(prototype interface{}, versionPrototypes ...interface{}) erro
 	}
 
 	entry.marshal.rtype = lastType
-	for i := 0; i < entryType.NumField(); i++ {
-		srcField := entryType.Field(i)
-		dstField, ok := lastType.FieldByName(srcField.Name)
-		if !ok {
-			continue
+	if packMethod, ok := reflect.PtrTo(lastType).MethodByName("Pack"); ok {
+		entry.marshal.packFunc = packMethod.Func
+	} else {
+		for i := 0; i < entryType.NumField(); i++ {
+			srcField := entryType.Field(i)
+			dstField, ok := lastType.FieldByName(srcField.Name)
+			if !ok {
+				continue
+			}
+			if srcField.Type != dstField.Type {
+				return fmt.Errorf("field %s has different types in %v (%v) and %v (%v)", srcField.Name, entryType, srcField.Type, lastType, dstField.Type)
+			}
+			mapping := mapping{src: srcField.Index[0], dst: dstField.Index[0]}
+			entry.marshal.mappings = append(entry.marshal.mappings, mapping)
 		}
-		if srcField.Type != dstField.Type {
-			return fmt.Errorf("field %s has different types in %v (%v) and %v (%v)", srcField.Name, entryType, srcField.Type, lastType, dstField.Type)
-		}
-		mapping := mapping{src: srcField.Index[0], dst: dstField.Index[0]}
-		entry.marshal.mappings = append(entry.marshal.mappings, mapping)
 	}
 
 	if field, ok := lastType.FieldByName("Version"); ok {
@@ -119,14 +123,21 @@ func RegisterError(prototype interface{}, versionPrototypes ...interface{}) erro
 		entry.marshal.versionField = -1
 	}
 
-	for i := 0; i < lastType.NumField(); i++ {
-		srcField := lastType.Field(i)
-		dstField, ok := entryType.FieldByName(srcField.Name)
-		if !ok {
-			continue
+	if unpackMethod, ok := reflect.PtrTo(lastType).MethodByName("Unpack"); ok {
+		entry.unmarshal.unpackFunc = unpackMethod.Func
+	} else {
+		for i := 0; i < lastType.NumField(); i++ {
+			srcField := lastType.Field(i)
+			dstField, ok := entryType.FieldByName(srcField.Name)
+			if !ok {
+				continue
+			}
+			if srcField.Type != dstField.Type {
+				return fmt.Errorf("field %s has different types in %v (%v) and %v (%v)", srcField.Name, entryType, dstField.Type, lastType, srcField.Type)
+			}
+			mapping := mapping{src: srcField.Index[0], dst: dstField.Index[0]}
+			entry.unmarshal.mappings = append(entry.unmarshal.mappings, mapping)
 		}
-		mapping := mapping{src: srcField.Index[0], dst: dstField.Index[0]}
-		entry.unmarshal.mappings = append(entry.unmarshal.mappings, mapping)
 	}
 
 	entryByType[entryType] = entry
@@ -146,11 +157,17 @@ func Marshal(inputInterface interface{}) ([]byte, error) {
 	}
 
 	value := reflect.New(entry.marshal.rtype)
-	elem := value.Elem()
-	copyFields(input, elem, entry.marshal.mappings)
+	if entry.marshal.packFunc.IsValid() {
+		err := callPackFunction(entry.marshal.packFunc, value, input.Addr())
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		copyFields(input, value.Elem(), entry.marshal.mappings)
+	}
 
 	if entry.marshal.versionField >= 0 {
-		elem.Field(entry.marshal.versionField).Set(reflect.ValueOf(entry.latestVersion))
+		value.Elem().Field(entry.marshal.versionField).Set(reflect.ValueOf(entry.latestVersion))
 		return json.Marshal(value.Interface())
 	}
 
@@ -210,7 +227,14 @@ func Unmarshal(valueInterface interface{}, data []byte) error {
 		current = next
 	}
 
-	copyFields(current.Elem(), value, entry.unmarshal.mappings)
+	if entry.unmarshal.unpackFunc.IsValid() {
+		err := callPackFunction(entry.unmarshal.unpackFunc, current, value.Addr())
+		if err != nil {
+			return err
+		}
+	} else {
+		copyFields(current.Elem(), value, entry.unmarshal.mappings)
+	}
 	return nil
 }
 
@@ -218,6 +242,19 @@ func copyFields(src, dst reflect.Value, mappings []mapping) {
 	for _, mapping := range mappings {
 		dst.Field(mapping.dst).Set(src.Field(mapping.src))
 	}
+}
+
+func callPackFunction(f reflect.Value, params ...reflect.Value) error {
+	returnValues := f.Call(params)
+	if len(returnValues) == 0 {
+		return nil
+	}
+	errorValue := returnValues[len(returnValues)-1]
+	errorInterface := errorValue.Interface()
+	if errorInterface == nil {
+		return nil
+	}
+	return errorInterface.(error)
 }
 
 type versionContainer struct {
