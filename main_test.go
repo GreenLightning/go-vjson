@@ -217,3 +217,39 @@ func TestUnmarshalUpgrade(t *testing.T) {
 		t.Errorf("wrong value: %+v", value)
 	}
 }
+
+type NestedParent struct {
+	Child NestedChild
+}
+
+type NestedChild struct {
+	B string
+}
+
+func (value *NestedChild) UnmarshalJSON(data []byte) error {
+	return Unmarshal(value, data)
+}
+
+type NestedChildV1 struct {
+	A string
+}
+
+type NestedChildV2 struct {
+	B string `vjson:"A"`
+}
+
+func TestUnmarshalNested(t *testing.T) {
+	ResetRegistry()
+	Register(NestedChild{}, NestedChildV1{}, NestedChildV2{})
+
+	data := []byte(`{"Child":{"Version":1,"A":"b"}}`)
+
+	var value NestedParent
+	err := json.Unmarshal(data, &value)
+	if err != nil {
+		t.Fatal("unexpected err:", err)
+	}
+	if value.Child.B != "b" {
+		t.Errorf("wrong value: %+v", value)
+	}
+}
