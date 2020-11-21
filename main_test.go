@@ -106,6 +106,31 @@ func TestUnmarshalSimple(t *testing.T) {
 	}
 }
 
+type Empty struct{}
+
+func (value *Empty) MarshalJSON() ([]byte, error) {
+	return Marshal(value)
+}
+
+type EmptyV1 struct{}
+
+func TestMarshalEmpty(t *testing.T) {
+	ResetRegistry()
+	Register(Empty{}, EmptyV1{})
+
+	value := Empty{}
+
+	data, err := json.Marshal(&value)
+	if err != nil {
+		t.Fatal("unexpected err:", err)
+	}
+
+	str := string(data)
+	if str != `{"Version":1}` {
+		t.Fatal("wrong data:", str)
+	}
+}
+
 type Multiple struct {
 	B string
 	C string
