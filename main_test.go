@@ -181,3 +181,39 @@ func TestUnmarshalRenaming(t *testing.T) {
 		t.Errorf("wrong value: %+v", value)
 	}
 }
+
+type Upgrade struct {
+	BA string
+}
+
+func (value *Upgrade) UnmarshalJSON(data []byte) error {
+	return Unmarshal(value, data)
+}
+
+type UpgradeV1 struct {
+	A string
+}
+
+type UpgradeV2 struct {
+	BA string
+}
+
+func (v2 *UpgradeV2) Upgrade(v1 *UpgradeV1) {
+	v2.BA = "b" + v1.A
+}
+
+func TestUnmarshalUpgrade(t *testing.T) {
+	ResetRegistry()
+	Register(Upgrade{}, UpgradeV1{}, UpgradeV2{})
+
+	data := []byte(`{"Version":1,"A":"a"}`)
+
+	var value Upgrade
+	err := json.Unmarshal(data, &value)
+	if err != nil {
+		t.Fatal("unexpected err:", err)
+	}
+	if value.BA != "ba" {
+		t.Errorf("wrong value: %+v", value)
+	}
+}

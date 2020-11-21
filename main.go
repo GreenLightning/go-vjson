@@ -24,8 +24,9 @@ type unmarshalContext struct {
 }
 
 type versionContext struct {
-	rtype    reflect.Type
-	mappings []mapping
+	rtype       reflect.Type
+	mappings    []mapping
+	upgradeFunc reflect.Value
 }
 
 type entry struct {
@@ -67,6 +68,14 @@ func Register(prototype interface{}, versionPrototypes ...interface{}) {
 				}
 			}
 			sort.Slice(context.mappings, func(i, j int) bool { return context.mappings[i].src < context.mappings[j].src })
+		}
+
+		// The upgrade method must have a pointer receiver,
+		// because it is meant to modify the receiver.
+		upgradeReceiverType := reflect.PtrTo(context.rtype)
+		upgradeMethod, ok := upgradeReceiverType.MethodByName("Upgrade")
+		if ok {
+			context.upgradeFunc = upgradeMethod.Func
 		}
 
 		entry.versions[index+1] = context
@@ -171,6 +180,9 @@ func Unmarshal(valueInterface interface{}, data []byte) error {
 		nextContext := entry.versions[version]
 		next := reflect.New(nextContext.rtype)
 		copyFields(current.Elem(), next.Elem(), nextContext.mappings)
+		if nextContext.upgradeFunc.IsValid() {
+			nextContext.upgradeFunc.Call([]reflect.Value{next, current})
+		}
 		currentContext = nextContext
 		current = next
 	}
