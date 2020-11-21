@@ -213,6 +213,7 @@ func TestMarshal(t *testing.T) {
 	t.Run("DynamicByValue", func(t *testing.T) {
 		ResetRegistry()
 		Register(DynamicByValue{}, DynamicV1{}, DynamicV2{}, DynamicV3{})
+
 		test(t, DynamicByValue{
 			Text1: "hello", Text2: "hello", Text3: "hello", Text4: "hello", Text5: "hello",
 			Num1: 42, Num2: 42, Num3: 42, Num4: 42, Num5: 42,
@@ -221,6 +222,7 @@ func TestMarshal(t *testing.T) {
 	t.Run("DynamicOptimizedByValue", func(t *testing.T) {
 		ResetRegistry()
 		Register(DynamicByValue{}, DynamicV1{}, DynamicV2{}, DynamicOptimizedV3{})
+
 		test(t, DynamicByValue{
 			Text1: "hello", Text2: "hello", Text3: "hello", Text4: "hello", Text5: "hello",
 			Num1: 42, Num2: 42, Num3: 42, Num4: 42, Num5: 42,
@@ -235,6 +237,7 @@ func TestMarshal(t *testing.T) {
 	t.Run("DynamicByPointer", func(t *testing.T) {
 		ResetRegistry()
 		Register(DynamicByPointer{}, DynamicV1{}, DynamicV2{}, DynamicV3{})
+
 		test(t, &DynamicByPointer{
 			Text1: "hello", Text2: "hello", Text3: "hello", Text4: "hello", Text5: "hello",
 			Num1: 42, Num2: 42, Num3: 42, Num4: 42, Num5: 42,
@@ -243,6 +246,7 @@ func TestMarshal(t *testing.T) {
 	t.Run("DynamicOptimizedByPointer", func(t *testing.T) {
 		ResetRegistry()
 		Register(DynamicByPointer{}, DynamicV1{}, DynamicV2{}, DynamicOptimizedV3{})
+
 		test(t, &DynamicByPointer{
 			Text1: "hello", Text2: "hello", Text3: "hello", Text4: "hello", Text5: "hello",
 			Num1: 42, Num2: 42, Num3: 42, Num4: 42, Num5: 42,
@@ -269,6 +273,8 @@ func BenchmarkMarshal(b *testing.B) {
 	b.Run("DynamicByValue", func(b *testing.B) {
 		ResetRegistry()
 		Register(DynamicByValue{}, DynamicV1{}, DynamicV2{}, DynamicV3{})
+		b.ResetTimer()
+
 		bench(b, DynamicByValue{
 			Text1: "hello", Text2: "hello", Text3: "hello", Text4: "hello", Text5: "hello",
 			Num1: 42, Num2: 42, Num3: 42, Num4: 42, Num5: 42,
@@ -277,6 +283,8 @@ func BenchmarkMarshal(b *testing.B) {
 	b.Run("DynamicOptimizedByValue", func(b *testing.B) {
 		ResetRegistry()
 		Register(DynamicByValue{}, DynamicV1{}, DynamicV2{}, DynamicOptimizedV3{})
+		b.ResetTimer()
+
 		bench(b, DynamicByValue{
 			Text1: "hello", Text2: "hello", Text3: "hello", Text4: "hello", Text5: "hello",
 			Num1: 42, Num2: 42, Num3: 42, Num4: 42, Num5: 42,
@@ -291,6 +299,8 @@ func BenchmarkMarshal(b *testing.B) {
 	b.Run("DynamicByPointer", func(b *testing.B) {
 		ResetRegistry()
 		Register(DynamicByPointer{}, DynamicV1{}, DynamicV2{}, DynamicV3{})
+		b.ResetTimer()
+
 		bench(b, &DynamicByPointer{
 			Text1: "hello", Text2: "hello", Text3: "hello", Text4: "hello", Text5: "hello",
 			Num1: 42, Num2: 42, Num3: 42, Num4: 42, Num5: 42,
@@ -299,6 +309,8 @@ func BenchmarkMarshal(b *testing.B) {
 	b.Run("DynamicOptimizedByPointer", func(b *testing.B) {
 		ResetRegistry()
 		Register(DynamicByPointer{}, DynamicV1{}, DynamicV2{}, DynamicOptimizedV3{})
+		b.ResetTimer()
+
 		bench(b, &DynamicByPointer{
 			Text1: "hello", Text2: "hello", Text3: "hello", Text4: "hello", Text5: "hello",
 			Num1: 42, Num2: 42, Num3: 42, Num4: 42, Num5: 42,
@@ -365,8 +377,79 @@ func BenchmarkUnmarshal(b *testing.B) {
 	b.Run("Dynamic", func(b *testing.B) {
 		ResetRegistry()
 		Register(Dynamic{}, DynamicV1{}, DynamicV2{}, DynamicV3{})
+		b.ResetTimer()
 
 		var value Dynamic
+		bench(b, &value)
+	})
+}
+
+type Ordered struct {
+	A, B, C, D, E, F, G, H, I, J string
+}
+
+type OrderedV1 struct {
+	A, B, C, D, E, F, G, H, I, J string
+}
+
+type OrderedV2 struct {
+	A, B, C, D, E, F, G, H, I, J string
+}
+
+type OrderedV3 struct {
+	A, B, C, D, E, F, G, H, I, J string
+}
+
+func (value *Ordered) UnmarshalJSON(data []byte) error {
+	return Unmarshal(value, data)
+}
+
+type Unordered struct {
+	A, B, C, D, E, F, G, H, I, J string
+}
+
+type UnorderedV1 struct {
+	C, D, F, E, B, G, J, I, A, H string
+}
+
+type UnorderedV2 struct {
+	E, G, D, B, I, J, A, F, H, C string
+}
+
+type UnorderedV3 struct {
+	A, C, H, E, F, B, J, I, D, G string
+}
+
+func (value *Unordered) UnmarshalJSON(data []byte) error {
+	return Unmarshal(value, data)
+}
+
+func BenchmarkUnmarshalSorting(b *testing.B) {
+	data := []byte(`{"Version":1,"A":"aaaaa","B":"bbbbb","C":"ccccc","D":"ddddd","E":"eeeee","F":"fffff","G":"ggggg","H":"hhhhh","I":"iiiii","J":"jjjjj"}`)
+
+	bench := func(b *testing.B, value interface{}) {
+		for i := 0; i < b.N; i++ {
+			err := json.Unmarshal(data, value)
+			if err != nil {
+				b.Fatal("unexpected err:", err)
+			}
+		}
+	}
+
+	b.Run("Ordered", func(b *testing.B) {
+		ResetRegistry()
+		Register(Ordered{}, OrderedV1{}, OrderedV2{}, OrderedV3{})
+		b.ResetTimer()
+
+		var value Ordered
+		bench(b, &value)
+	})
+	b.Run("Unordered", func(b *testing.B) {
+		ResetRegistry()
+		Register(Unordered{}, UnorderedV1{}, UnorderedV2{}, UnorderedV3{})
+		b.ResetTimer()
+
+		var value Unordered
 		bench(b, &value)
 	})
 }
