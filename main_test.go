@@ -2,6 +2,7 @@ package vjson
 
 import (
 	"encoding/json"
+	"fmt"
 	"strings"
 	"testing"
 )
@@ -355,5 +356,44 @@ func TestRegisterTypeMismatchC(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "cannot copy field") || !strings.Contains(err.Error(), "different types") {
 		t.Fatal("unexpected err:", err)
+	}
+}
+
+type TypeConversion struct {
+	Message string
+}
+
+func (value *TypeConversion) UnmarshalJSON(data []byte) error {
+	return Unmarshal(value, data)
+}
+
+type TypeConversionV1 struct {
+	Message int
+}
+
+type TypeConversionV2 struct {
+	Message string `vjson:""`
+}
+
+func (v2 *TypeConversionV2) Upgrade(v1 *TypeConversionV1) {
+	v2.Message = fmt.Sprintf("%d", v1.Message)
+}
+
+func TestTypeConversion(t *testing.T) {
+	ResetRegistry()
+	err := RegisterError(TypeConversion{}, TypeConversionV1{}, TypeConversionV2{})
+	if err != nil {
+		t.Fatal("unexpected err:", err)
+	}
+
+	data := []byte(`{"Version":1,"Message":42}`)
+
+	var value TypeConversion
+	err = json.Unmarshal(data, &value)
+	if err != nil {
+		t.Fatal("unexpected err:", err)
+	}
+	if value.Message != "42" {
+		t.Errorf("wrong value: %+v", value)
 	}
 }

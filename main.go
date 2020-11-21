@@ -65,7 +65,10 @@ func RegisterError(prototype interface{}, versionPrototypes ...interface{}) erro
 			for i := 0; i < context.rtype.NumField(); i++ {
 				dstField := context.rtype.Field(i)
 				srcName := dstField.Name
-				if tag, ok := dstField.Tag.Lookup("vjson"); ok && tag != "" {
+				if tag, ok := dstField.Tag.Lookup("vjson"); ok {
+					if tag == "" {
+						continue
+					}
 					srcName = tag
 				}
 				srcField, ok := lastType.FieldByName(srcName)
