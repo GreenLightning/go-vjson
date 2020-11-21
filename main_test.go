@@ -146,3 +146,38 @@ func TestUnmarshalMultiple(t *testing.T) {
 		t.Errorf("wrong value: %+v", value)
 	}
 }
+
+type Renaming struct {
+	X string
+	Y string
+}
+
+func (value *Renaming) UnmarshalJSON(data []byte) error {
+	return Unmarshal(value, data)
+}
+
+type RenamingV1 struct {
+	A string
+	B string
+}
+
+type RenamingV2 struct {
+	X string `vjson:"A"`
+	Y string
+}
+
+func TestUnmarshalRenaming(t *testing.T) {
+	ResetRegistry()
+	Register(Renaming{}, RenamingV1{}, RenamingV2{})
+
+	data := []byte(`{"Version":1,"A":"x","B":"b"}`)
+
+	var value Renaming
+	err := json.Unmarshal(data, &value)
+	if err != nil {
+		t.Fatal("unexpected err:", err)
+	}
+	if value.X != "x" || value.Y != "" {
+		t.Errorf("wrong value: %+v", value)
+	}
+}

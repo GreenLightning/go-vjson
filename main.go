@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"sort"
 )
 
 type mapping struct {
@@ -53,14 +54,19 @@ func Register(prototype interface{}, versionPrototypes ...interface{}) {
 		context.rtype = reflect.TypeOf(versionPrototype)
 
 		if lastType != nil {
-			for i := 0; i < lastType.NumField(); i++ {
-				srcField := lastType.Field(i)
-				dstField, ok := context.rtype.FieldByName(srcField.Name)
+			for i := 0; i < context.rtype.NumField(); i++ {
+				dstField := context.rtype.Field(i)
+				srcName := dstField.Name
+				if tag, ok := dstField.Tag.Lookup("vjson"); ok && tag != "" {
+					srcName = tag
+				}
+				srcField, ok := lastType.FieldByName(srcName)
 				if ok {
 					mapping := mapping{src: srcField.Index[0], dst: dstField.Index[0]}
 					context.mappings = append(context.mappings, mapping)
 				}
 			}
+			sort.Slice(context.mappings, func(i, j int) bool { return context.mappings[i].src < context.mappings[j].src })
 		}
 
 		entry.versions[index+1] = context
