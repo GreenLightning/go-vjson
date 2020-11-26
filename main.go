@@ -199,6 +199,10 @@ func Unmarshal(valueInterface interface{}, data []byte) error {
 		return fmt.Errorf("vjson: type not registered: %v", value.Type())
 	}
 
+	if string(data) == "null" {
+		return nil
+	}
+
 	version, err := unmarshalVersion(data)
 	if err != nil {
 		return err

@@ -26,6 +26,34 @@ type SimpleV1 struct {
 	Number int
 }
 
+func TestMarshalNil(t *testing.T) {
+	ResetRegistry()
+	Register(Simple{}, SimpleV1{})
+
+	data, err := json.Marshal(nil)
+	if err != nil {
+		t.Fatal("unexpected err:", err)
+	}
+	if string(data) != "null" {
+		t.Error("wrong data:", string(data))
+	}
+}
+
+func TestMarshalNilValue(t *testing.T) {
+	ResetRegistry()
+	Register(Simple{}, SimpleV1{})
+
+	var value *Simple
+
+	data, err := json.Marshal(value)
+	if err != nil {
+		t.Fatal("unexpected err:", err)
+	}
+	if string(data) != "null" {
+		t.Error("wrong data:", string(data))
+	}
+}
+
 func TestMarshalNotRegistered(t *testing.T) {
 	ResetRegistry()
 
@@ -103,6 +131,19 @@ func TestUnmarshalSimple(t *testing.T) {
 	}
 	if value.Number != 42 {
 		t.Errorf("wrong number: %+v", value)
+	}
+}
+
+func TestUnmarshalSimpleNull(t *testing.T) {
+	ResetRegistry()
+	Register(Simple{}, SimpleV1{})
+
+	data := []byte(`null`)
+
+	var value Simple
+	err := json.Unmarshal(data, &value)
+	if err != nil {
+		t.Fatal("unexpected err:", err)
 	}
 }
 
@@ -484,6 +525,19 @@ func TestUnmarshalRaw(t *testing.T) {
 	}
 	if value.Message != "hello" {
 		t.Errorf("wrong value: %+v", value)
+	}
+}
+
+func TestUnmarshalRawNull(t *testing.T) {
+	ResetRegistry()
+	Register(Raw{}, RawV1{})
+
+	data := []byte(`null`)
+
+	var value Raw
+	err := json.Unmarshal(data, &value)
+	if err != nil {
+		t.Fatal("unexpected err:", err)
 	}
 }
 
