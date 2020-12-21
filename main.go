@@ -54,6 +54,18 @@ func Register(prototype interface{}, versionPrototypes ...interface{}) {
 func RegisterError(prototype interface{}, versionPrototypes ...interface{}) error {
 	entryType := reflect.TypeOf(prototype)
 
+	if entryType.Kind() != reflect.Struct {
+		return fmt.Errorf("only structs are allowed, but found %v", entryType)
+	}
+
+	if _, ok := entryByType[entryType]; ok {
+		return fmt.Errorf("type %v already registered", entryType)
+	}
+
+	if len(versionPrototypes) == 0 {
+		return fmt.Errorf("must provide at least one version prototype")
+	}
+
 	var entry entry
 	entry.latestVersion = len(versionPrototypes)
 	entry.versions = make(map[int]versionContext)
@@ -62,6 +74,10 @@ func RegisterError(prototype interface{}, versionPrototypes ...interface{}) erro
 	for index, versionPrototype := range versionPrototypes {
 		var context versionContext
 		context.rtype = reflect.TypeOf(versionPrototype)
+
+		if context.rtype.Kind() != reflect.Struct {
+			return fmt.Errorf("only structs are allowed, but found %v for version %d", context.rtype, index+1)
+		}
 
 		if lastType != nil {
 			for i := 0; i < context.rtype.NumField(); i++ {

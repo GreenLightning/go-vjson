@@ -83,6 +83,55 @@ func TestUnmarshalNotRegistered(t *testing.T) {
 	}
 }
 
+func TestRegisterTwice(t *testing.T) {
+	ResetRegistry()
+	Register(Simple{}, SimpleV1{})
+	err := RegisterError(Simple{}, SimpleV1{})
+
+	if err == nil {
+		t.Fatal("missing error")
+	}
+	if !strings.Contains(err.Error(), "already registered") {
+		t.Fatal("unexpected err:", err)
+	}
+}
+
+func TestRegisterNonStruct(t *testing.T) {
+	ResetRegistry()
+	err := RegisterError(1, SimpleV1{})
+
+	if err == nil {
+		t.Fatal("missing error")
+	}
+	if !strings.Contains(err.Error(), "only structs are allowed") {
+		t.Fatal("unexpected err:", err)
+	}
+}
+
+func TestRegisterVersionNonStruct(t *testing.T) {
+	ResetRegistry()
+	err := RegisterError(Simple{}, 1)
+
+	if err == nil {
+		t.Fatal("missing error")
+	}
+	if !strings.Contains(err.Error(), "only structs are allowed") {
+		t.Fatal("unexpected err:", err)
+	}
+}
+
+func TestRegisterNoVersions(t *testing.T) {
+	ResetRegistry()
+	err := RegisterError(Simple{})
+
+	if err == nil {
+		t.Fatal("missing error")
+	}
+	if !strings.Contains(err.Error(), "at least one version prototype") {
+		t.Fatal("unexpected err:", err)
+	}
+}
+
 func TestNegativeVersion(t *testing.T) {
 	ResetRegistry()
 	Register(Simple{}, SimpleV1{})
