@@ -174,7 +174,7 @@ func Marshal(inputInterface interface{}) ([]byte, error) {
 
 	value := reflect.New(entry.marshal.rtype)
 	if entry.marshal.packFunc.IsValid() {
-		err := callPackFunction(entry.marshal.packFunc, value, input.Addr())
+		err := callErrorFunction(entry.marshal.packFunc, value, input.Addr())
 		if err != nil {
 			return nil, err
 		}
@@ -241,14 +241,17 @@ func Unmarshal(valueInterface interface{}, data []byte) error {
 		next := reflect.New(nextContext.rtype)
 		copyFields(current.Elem(), next.Elem(), nextContext.mappings)
 		if nextContext.upgradeFunc.IsValid() {
-			nextContext.upgradeFunc.Call([]reflect.Value{next, current})
+			err := callErrorFunction(nextContext.upgradeFunc, next, current)
+			if err != nil {
+				return err
+			}
 		}
 		currentContext = nextContext
 		current = next
 	}
 
 	if entry.unmarshal.unpackFunc.IsValid() {
-		err := callPackFunction(entry.unmarshal.unpackFunc, current, value.Addr())
+		err := callErrorFunction(entry.unmarshal.unpackFunc, current, value.Addr())
 		if err != nil {
 			return err
 		}
@@ -264,7 +267,7 @@ func copyFields(src, dst reflect.Value, mappings []mapping) {
 	}
 }
 
-func callPackFunction(f reflect.Value, params ...reflect.Value) error {
+func callErrorFunction(f reflect.Value, params ...reflect.Value) error {
 	returnValues := f.Call(params)
 	if len(returnValues) == 0 {
 		return nil

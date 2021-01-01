@@ -335,6 +335,42 @@ func TestUnmarshalUpgrade(t *testing.T) {
 	}
 }
 
+type UpgradeError struct {
+	BA string
+}
+
+func (value *UpgradeError) UnmarshalJSON(data []byte) error {
+	return Unmarshal(value, data)
+}
+
+type UpgradeErrorV1 struct {
+	A string
+}
+
+type UpgradeErrorV2 struct {
+	BA string
+}
+
+func (v2 *UpgradeErrorV2) Upgrade(v1 *UpgradeErrorV1) error {
+	return fmt.Errorf("upgrade error")
+}
+
+func TestUnmarshalUpgradeError(t *testing.T) {
+	ResetRegistry()
+	Register(UpgradeError{}, UpgradeErrorV1{}, UpgradeErrorV2{})
+
+	data := []byte(`{"Version":1,"A":"a"}`)
+
+	var value UpgradeError
+	err := json.Unmarshal(data, &value)
+	if err == nil {
+		t.Fatal("missing error")
+	}
+	if err.Error() != "upgrade error" {
+		t.Fatal("wrong error:", err)
+	}
+}
+
 type NestedParent struct {
 	Child NestedChild
 }
