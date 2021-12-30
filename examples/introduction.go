@@ -1,22 +1,12 @@
-ALPHA SOFTWARE
-==============
+package main
 
-**This package is still in alpha. It has no documentation and will most likely panic if you don't know what you're doing.**
+import (
+	"encoding/json"
+	"fmt"
 
-# Introduction
+	"github.com/GreenLightning/go-vjson"
+)
 
-This package adds versioning on top of the standard library's json package for
-building backward-compatible formats.
-
-Each struct is versioned independently using an integer version number, which is
-added to the serialized JSON under the `"Version"` key. In the code, the data
-format of each version is explicitly defined in a separate struct declaration.
-Advanced features include automatic renaming using tags and running arbitrary
-code during version upgrades.
-
-For example (`examples/introduction.go`):
-
-```
 // The struct used by the rest of the application:
 type User struct {
 	ID          string // in hex
@@ -82,7 +72,4 @@ func main() {
 
 	fmt.Printf("User: %+v\n", user)
 	fmt.Printf("Output: %s\n", output)
-	// User: {ID:002a UserName:dale_cooper DisplayName:dale_cooper}
-	// Output: {"Version":3,"ID":"002a","UserName":"dale_cooper","DisplayName":"dale_cooper"}
 }
-```
