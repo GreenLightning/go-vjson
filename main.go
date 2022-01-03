@@ -40,18 +40,18 @@ type entry struct {
 
 var entryByType = make(map[reflect.Type]entry)
 
-func ResetRegistry() {
+func resetRegistry() {
 	entryByType = make(map[reflect.Type]entry)
 }
 
 func Register(prototype interface{}, versionPrototypes ...interface{}) {
-	err := RegisterError(prototype, versionPrototypes...)
+	err := registerError(prototype, versionPrototypes...)
 	if err != nil {
 		panic(err)
 	}
 }
 
-func RegisterError(prototype interface{}, versionPrototypes ...interface{}) error {
+func registerError(prototype interface{}, versionPrototypes ...interface{}) error {
 	entryType := reflect.TypeOf(prototype)
 
 	if entryType.Kind() != reflect.Struct {

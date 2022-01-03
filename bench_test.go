@@ -211,7 +211,7 @@ func TestMarshal(t *testing.T) {
 		})
 	})
 	t.Run("DynamicByValue", func(t *testing.T) {
-		ResetRegistry()
+		resetRegistry()
 		Register(DynamicByValue{}, DynamicV1{}, DynamicV2{}, DynamicV3{})
 
 		test(t, DynamicByValue{
@@ -220,7 +220,7 @@ func TestMarshal(t *testing.T) {
 		})
 	})
 	t.Run("DynamicOptimizedByValue", func(t *testing.T) {
-		ResetRegistry()
+		resetRegistry()
 		Register(DynamicByValue{}, DynamicV1{}, DynamicV2{}, DynamicOptimizedV3{})
 
 		test(t, DynamicByValue{
@@ -235,7 +235,7 @@ func TestMarshal(t *testing.T) {
 		})
 	})
 	t.Run("DynamicByPointer", func(t *testing.T) {
-		ResetRegistry()
+		resetRegistry()
 		Register(DynamicByPointer{}, DynamicV1{}, DynamicV2{}, DynamicV3{})
 
 		test(t, &DynamicByPointer{
@@ -244,7 +244,7 @@ func TestMarshal(t *testing.T) {
 		})
 	})
 	t.Run("DynamicOptimizedByPointer", func(t *testing.T) {
-		ResetRegistry()
+		resetRegistry()
 		Register(DynamicByPointer{}, DynamicV1{}, DynamicV2{}, DynamicOptimizedV3{})
 
 		test(t, &DynamicByPointer{
@@ -271,7 +271,7 @@ func BenchmarkMarshal(b *testing.B) {
 		})
 	})
 	b.Run("DynamicByValue", func(b *testing.B) {
-		ResetRegistry()
+		resetRegistry()
 		Register(DynamicByValue{}, DynamicV1{}, DynamicV2{}, DynamicV3{})
 		b.ResetTimer()
 
@@ -281,7 +281,7 @@ func BenchmarkMarshal(b *testing.B) {
 		})
 	})
 	b.Run("DynamicOptimizedByValue", func(b *testing.B) {
-		ResetRegistry()
+		resetRegistry()
 		Register(DynamicByValue{}, DynamicV1{}, DynamicV2{}, DynamicOptimizedV3{})
 		b.ResetTimer()
 
@@ -297,7 +297,7 @@ func BenchmarkMarshal(b *testing.B) {
 		})
 	})
 	b.Run("DynamicByPointer", func(b *testing.B) {
-		ResetRegistry()
+		resetRegistry()
 		Register(DynamicByPointer{}, DynamicV1{}, DynamicV2{}, DynamicV3{})
 		b.ResetTimer()
 
@@ -307,7 +307,7 @@ func BenchmarkMarshal(b *testing.B) {
 		})
 	})
 	b.Run("DynamicOptimizedByPointer", func(b *testing.B) {
-		ResetRegistry()
+		resetRegistry()
 		Register(DynamicByPointer{}, DynamicV1{}, DynamicV2{}, DynamicOptimizedV3{})
 		b.ResetTimer()
 
@@ -349,7 +349,7 @@ func TestUnmarshal(t *testing.T) {
 		check(t, value.Text4, value.Text5, value.Num4, value.Num5)
 	})
 	t.Run("Dynamic", func(t *testing.T) {
-		ResetRegistry()
+		resetRegistry()
 		Register(Dynamic{}, DynamicV1{}, DynamicV2{}, DynamicV3{})
 
 		var value Dynamic
@@ -375,7 +375,7 @@ func BenchmarkUnmarshal(b *testing.B) {
 		bench(b, &value)
 	})
 	b.Run("Dynamic", func(b *testing.B) {
-		ResetRegistry()
+		resetRegistry()
 		Register(Dynamic{}, DynamicV1{}, DynamicV2{}, DynamicV3{})
 		b.ResetTimer()
 
@@ -437,7 +437,7 @@ func BenchmarkUnmarshalSorting(b *testing.B) {
 	}
 
 	b.Run("Ordered", func(b *testing.B) {
-		ResetRegistry()
+		resetRegistry()
 		Register(Ordered{}, OrderedV1{}, OrderedV2{}, OrderedV3{})
 		b.ResetTimer()
 
@@ -445,7 +445,7 @@ func BenchmarkUnmarshalSorting(b *testing.B) {
 		bench(b, &value)
 	})
 	b.Run("Unordered", func(b *testing.B) {
-		ResetRegistry()
+		resetRegistry()
 		Register(Unordered{}, UnorderedV1{}, UnorderedV2{}, UnorderedV3{})
 		b.ResetTimer()
 

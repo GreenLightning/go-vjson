@@ -27,7 +27,7 @@ type SimpleV1 struct {
 }
 
 func TestMarshalNil(t *testing.T) {
-	ResetRegistry()
+	resetRegistry()
 	Register(Simple{}, SimpleV1{})
 
 	data, err := json.Marshal(nil)
@@ -40,7 +40,7 @@ func TestMarshalNil(t *testing.T) {
 }
 
 func TestMarshalNilValue(t *testing.T) {
-	ResetRegistry()
+	resetRegistry()
 	Register(Simple{}, SimpleV1{})
 
 	var value *Simple
@@ -55,7 +55,7 @@ func TestMarshalNilValue(t *testing.T) {
 }
 
 func TestMarshalNotRegistered(t *testing.T) {
-	ResetRegistry()
+	resetRegistry()
 
 	value := Simple{Text: "hello", Number: 42}
 
@@ -69,7 +69,7 @@ func TestMarshalNotRegistered(t *testing.T) {
 }
 
 func TestUnmarshalNotRegistered(t *testing.T) {
-	ResetRegistry()
+	resetRegistry()
 
 	data := []byte(`{"Version":1,"Text":"hello","Number":42}`)
 
@@ -84,9 +84,9 @@ func TestUnmarshalNotRegistered(t *testing.T) {
 }
 
 func TestRegisterTwice(t *testing.T) {
-	ResetRegistry()
+	resetRegistry()
 	Register(Simple{}, SimpleV1{})
-	err := RegisterError(Simple{}, SimpleV1{})
+	err := registerError(Simple{}, SimpleV1{})
 
 	if err == nil {
 		t.Fatal("missing error")
@@ -97,8 +97,8 @@ func TestRegisterTwice(t *testing.T) {
 }
 
 func TestRegisterNonStruct(t *testing.T) {
-	ResetRegistry()
-	err := RegisterError(1, SimpleV1{})
+	resetRegistry()
+	err := registerError(1, SimpleV1{})
 
 	if err == nil {
 		t.Fatal("missing error")
@@ -109,8 +109,8 @@ func TestRegisterNonStruct(t *testing.T) {
 }
 
 func TestRegisterVersionNonStruct(t *testing.T) {
-	ResetRegistry()
-	err := RegisterError(Simple{}, 1)
+	resetRegistry()
+	err := registerError(Simple{}, 1)
 
 	if err == nil {
 		t.Fatal("missing error")
@@ -121,8 +121,8 @@ func TestRegisterVersionNonStruct(t *testing.T) {
 }
 
 func TestRegisterNoVersions(t *testing.T) {
-	ResetRegistry()
-	err := RegisterError(Simple{})
+	resetRegistry()
+	err := registerError(Simple{})
 
 	if err == nil {
 		t.Fatal("missing error")
@@ -133,7 +133,7 @@ func TestRegisterNoVersions(t *testing.T) {
 }
 
 func TestNegativeVersion(t *testing.T) {
-	ResetRegistry()
+	resetRegistry()
 	Register(Simple{}, SimpleV1{})
 
 	data := []byte(`{"Version":-1,"Text":"hello","Number":42}`)
@@ -149,7 +149,7 @@ func TestNegativeVersion(t *testing.T) {
 }
 
 func TestUnsupportedVersion(t *testing.T) {
-	ResetRegistry()
+	resetRegistry()
 	Register(Simple{}, SimpleV1{})
 
 	data := []byte(`{"Version":100,"Text":"hello","Number":42}`)
@@ -165,7 +165,7 @@ func TestUnsupportedVersion(t *testing.T) {
 }
 
 func TestUnmarshalSimple(t *testing.T) {
-	ResetRegistry()
+	resetRegistry()
 	Register(Simple{}, SimpleV1{})
 
 	data := []byte(`{"Version":1,"Text":"hello","Number":42}`)
@@ -184,7 +184,7 @@ func TestUnmarshalSimple(t *testing.T) {
 }
 
 func TestUnmarshalSimpleNull(t *testing.T) {
-	ResetRegistry()
+	resetRegistry()
 	Register(Simple{}, SimpleV1{})
 
 	data := []byte(`null`)
@@ -205,7 +205,7 @@ func (value *Empty) MarshalJSON() ([]byte, error) {
 type EmptyV1 struct{}
 
 func TestMarshalEmpty(t *testing.T) {
-	ResetRegistry()
+	resetRegistry()
 	Register(Empty{}, EmptyV1{})
 
 	value := Empty{}
@@ -249,7 +249,7 @@ type MultipleV3 struct {
 }
 
 func TestUnmarshalMultiple(t *testing.T) {
-	ResetRegistry()
+	resetRegistry()
 	Register(Multiple{}, MultipleV1{}, MultipleV2{}, MultipleV3{})
 
 	data := []byte(`{"Version":2,"A":"a","B":"b","C":"c"}`)
@@ -284,7 +284,7 @@ type RenamingV2 struct {
 }
 
 func TestUnmarshalRenaming(t *testing.T) {
-	ResetRegistry()
+	resetRegistry()
 	Register(Renaming{}, RenamingV1{}, RenamingV2{})
 
 	data := []byte(`{"Version":1,"A":"x","B":"b"}`)
@@ -320,7 +320,7 @@ func (v2 *UpgradeV2) Upgrade(v1 *UpgradeV1) {
 }
 
 func TestUnmarshalUpgrade(t *testing.T) {
-	ResetRegistry()
+	resetRegistry()
 	Register(Upgrade{}, UpgradeV1{}, UpgradeV2{})
 
 	data := []byte(`{"Version":1,"A":"a"}`)
@@ -356,7 +356,7 @@ func (v2 *UpgradeErrorV2) Upgrade(v1 *UpgradeErrorV1) error {
 }
 
 func TestUnmarshalUpgradeError(t *testing.T) {
-	ResetRegistry()
+	resetRegistry()
 	Register(UpgradeError{}, UpgradeErrorV1{}, UpgradeErrorV2{})
 
 	data := []byte(`{"Version":1,"A":"a"}`)
@@ -392,7 +392,7 @@ type NestedChildV2 struct {
 }
 
 func TestUnmarshalNested(t *testing.T) {
-	ResetRegistry()
+	resetRegistry()
 	Register(NestedChild{}, NestedChildV1{}, NestedChildV2{})
 
 	data := []byte(`{"Child":{"Version":1,"A":"b"}}`)
@@ -428,7 +428,7 @@ type EmbeddedParentV2 struct {
 }
 
 func TestUnmarshalEmbedded(t *testing.T) {
-	ResetRegistry()
+	resetRegistry()
 	Register(EmbeddedParent{}, EmbeddedParentV1{}, EmbeddedParentV2{})
 
 	data := []byte(`{"Version":1,"A":"a"}`)
@@ -452,8 +452,8 @@ type TypeMismatchAV1 struct {
 }
 
 func TestRegisterTypeMismatchA(t *testing.T) {
-	ResetRegistry()
-	err := RegisterError(TypeMismatchA{}, TypeMismatchAV1{})
+	resetRegistry()
+	err := registerError(TypeMismatchA{}, TypeMismatchAV1{})
 
 	if err == nil {
 		t.Fatal("missing error")
@@ -476,8 +476,8 @@ type TypeMismatchBV2 struct {
 }
 
 func TestRegisterTypeMismatchB(t *testing.T) {
-	ResetRegistry()
-	err := RegisterError(TypeMismatchB{}, TypeMismatchBV1{}, TypeMismatchBV2{})
+	resetRegistry()
+	err := registerError(TypeMismatchB{}, TypeMismatchBV1{}, TypeMismatchBV2{})
 
 	if err == nil {
 		t.Fatal("missing error")
@@ -500,8 +500,8 @@ type TypeMismatchCV2 struct {
 }
 
 func TestRegisterTypeMismatchC(t *testing.T) {
-	ResetRegistry()
-	err := RegisterError(TypeMismatchC{}, TypeMismatchCV1{}, TypeMismatchCV2{})
+	resetRegistry()
+	err := registerError(TypeMismatchC{}, TypeMismatchCV1{}, TypeMismatchCV2{})
 
 	if err == nil {
 		t.Fatal("missing error")
@@ -532,7 +532,7 @@ func (v2 *TypeConversionV2) Upgrade(v1 *TypeConversionV1) {
 }
 
 func TestTypeConversion(t *testing.T) {
-	ResetRegistry()
+	resetRegistry()
 	Register(TypeConversion{}, TypeConversionV1{}, TypeConversionV2{})
 
 	data := []byte(`{"Version":1,"Message":42}`)
@@ -578,7 +578,7 @@ func (latest *RawV1) Unpack(value *Raw) error {
 }
 
 func TestMarshalRaw(t *testing.T) {
-	ResetRegistry()
+	resetRegistry()
 	Register(Raw{}, RawV1{})
 
 	value := Raw{Message: "hello"}
@@ -598,7 +598,7 @@ func TestMarshalRaw(t *testing.T) {
 }
 
 func TestUnmarshalRaw(t *testing.T) {
-	ResetRegistry()
+	resetRegistry()
 	Register(Raw{}, RawV1{})
 
 	data := []byte(`{"Version":1,"Message":"hello"}`)
@@ -614,7 +614,7 @@ func TestUnmarshalRaw(t *testing.T) {
 }
 
 func TestUnmarshalRawNull(t *testing.T) {
-	ResetRegistry()
+	resetRegistry()
 	Register(Raw{}, RawV1{})
 
 	data := []byte(`null`)
@@ -653,7 +653,7 @@ func (latest *RawErrorV1) Unpack(value *RawError) error {
 }
 
 func TestMarshalRawError(t *testing.T) {
-	ResetRegistry()
+	resetRegistry()
 	Register(RawError{}, RawErrorV1{})
 
 	value := RawError{Message: "hello"}
@@ -668,7 +668,7 @@ func TestMarshalRawError(t *testing.T) {
 }
 
 func TestUnmarshalRawError(t *testing.T) {
-	ResetRegistry()
+	resetRegistry()
 	Register(RawError{}, RawErrorV1{})
 
 	data := []byte(`{"Version":1,"Message":"hello"}`)
