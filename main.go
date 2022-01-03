@@ -44,6 +44,18 @@ func resetRegistry() {
 	entryByType = make(map[reflect.Type]entry)
 }
 
+// Register registers a type for serialization.
+//
+// The first parameter is the target type, while the following parameters
+// correspond to individual version starting from v1, v2, etc. The concrete
+// values passed to this function are ignored, only their types are considered.
+//
+// Register panics if an error is encountered.
+// Register must not be called concurrently with any other call to Register, Marshal or Unmarshal.
+// (Marshal and Unmarshal can be called concurrently with themselves.)
+//
+// (Register is intended to be only called from init functions, where the panic
+// and concurrency limitations are not a concern.)
 func Register(prototype interface{}, versionPrototypes ...interface{}) {
 	err := registerError(prototype, versionPrototypes...)
 	if err != nil {
@@ -160,6 +172,10 @@ func registerError(prototype interface{}, versionPrototypes ...interface{}) erro
 	return nil
 }
 
+// Marshal is like json.Marshal but adds a version number to the generated JSON.
+// The type of the data passed to Marshal must have previously been registered
+// with the vjson package or else an error is returned.
+// Marshal always serializes to the latest known version.
 func Marshal(inputInterface interface{}) ([]byte, error) {
 	input := reflect.ValueOf(inputInterface)
 
@@ -203,6 +219,11 @@ func Marshal(inputInterface interface{}) ([]byte, error) {
 	return buffer.Bytes(), nil
 }
 
+// Unmarshal is like json.Unmarshal but respects the version number contained in the JSON.
+// The type of the data passed to Unmarshal must have previously been registered with
+// the vjson package and the version number contained in the JSON must be within the range
+// of versions given to the Register function. Otherwise an error is returned.
+// Unmarshal upgrades the data to the latest version.
 func Unmarshal(valueInterface interface{}, data []byte) error {
 	value := reflect.ValueOf(valueInterface)
 
