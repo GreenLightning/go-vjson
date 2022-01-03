@@ -227,9 +227,17 @@ func Marshal(inputInterface interface{}) ([]byte, error) {
 func Unmarshal(valueInterface interface{}, data []byte) error {
 	value := reflect.ValueOf(valueInterface)
 
-	if value.Kind() == reflect.Ptr {
-		value = value.Elem()
+	if kind := value.Kind(); kind != reflect.Ptr || value.IsNil() {
+		if kind == reflect.Invalid {
+			return fmt.Errorf("vjson: Unmarshal(nil)")
+		}
+		if kind != reflect.Ptr {
+			return fmt.Errorf("vjson: Unmarshal(non-pointer %v)", value.Type())
+		}
+		return fmt.Errorf("vjson: Unmarshal(nil %v)", value.Type())
 	}
+
+	value = value.Elem()
 
 	entry, ok := entryByType[value.Type()]
 	if !ok {
