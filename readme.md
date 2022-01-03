@@ -126,11 +126,11 @@ similar to the `"Version"` key. This feature further requires a mapping between
 Go types and string identifiers, necessitating another registration function.
 
 The standard library's json package does not have any support for polymorphic
-types. In particular unmarshaling into an empty `interface{}` creates a
-`map[string]interface{}`, while unmarshaling into any other interface returns an
-error. Unfortunately, it is difficult to change this behavior. Therefore,
-implementing this feature at the library level most likely requires forking the
-`encoding/json` package as described above.
+types. In particular unmarshaling a JSON object into an empty `interface{}`
+creates a `map[string]interface{}`, while unmarshaling into any other interface
+returns an error. Unfortunately, it is difficult to change this behavior.
+Therefore, implementing this feature at the library level most likely requires
+forking the `encoding/json` package as described above.
 
 An example where this would be useful:
 
