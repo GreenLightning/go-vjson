@@ -18,7 +18,7 @@ func (s Simple) MarshalJSON() ([]byte, error) {
 }
 
 func (s *Simple) UnmarshalJSON(data []byte) error {
-	return Unmarshal(s, data)
+	return Unmarshal(data, s)
 }
 
 type SimpleV1 struct {
@@ -228,7 +228,7 @@ type Multiple struct {
 }
 
 func (value *Multiple) UnmarshalJSON(data []byte) error {
-	return Unmarshal(value, data)
+	return Unmarshal(data, value)
 }
 
 type MultipleV1 struct {
@@ -270,7 +270,7 @@ type Renaming struct {
 }
 
 func (value *Renaming) UnmarshalJSON(data []byte) error {
-	return Unmarshal(value, data)
+	return Unmarshal(data, value)
 }
 
 type RenamingV1 struct {
@@ -304,7 +304,7 @@ type Upgrade struct {
 }
 
 func (value *Upgrade) UnmarshalJSON(data []byte) error {
-	return Unmarshal(value, data)
+	return Unmarshal(data, value)
 }
 
 type UpgradeV1 struct {
@@ -340,7 +340,7 @@ type UpgradeError struct {
 }
 
 func (value *UpgradeError) UnmarshalJSON(data []byte) error {
-	return Unmarshal(value, data)
+	return Unmarshal(data, value)
 }
 
 type UpgradeErrorV1 struct {
@@ -380,7 +380,7 @@ type NestedChild struct {
 }
 
 func (value *NestedChild) UnmarshalJSON(data []byte) error {
-	return Unmarshal(value, data)
+	return Unmarshal(data, value)
 }
 
 type NestedChildV1 struct {
@@ -416,7 +416,7 @@ type EmbeddedParent struct {
 }
 
 func (value *EmbeddedParent) UnmarshalJSON(data []byte) error {
-	return Unmarshal(value, data)
+	return Unmarshal(data, value)
 }
 
 type EmbeddedParentV1 struct {
@@ -516,7 +516,7 @@ type TypeConversion struct {
 }
 
 func (value *TypeConversion) UnmarshalJSON(data []byte) error {
-	return Unmarshal(value, data)
+	return Unmarshal(data, value)
 }
 
 type TypeConversionV1 struct {
@@ -556,7 +556,7 @@ func (value *Raw) MarshalJSON() ([]byte, error) {
 }
 
 func (value *Raw) UnmarshalJSON(data []byte) error {
-	return Unmarshal(value, data)
+	return Unmarshal(data, value)
 }
 
 type RawV1 struct {
@@ -637,7 +637,7 @@ func (value *RawError) MarshalJSON() ([]byte, error) {
 }
 
 func (value *RawError) UnmarshalJSON(data []byte) error {
-	return Unmarshal(value, data)
+	return Unmarshal(data, value)
 }
 
 type RawErrorV1 struct {

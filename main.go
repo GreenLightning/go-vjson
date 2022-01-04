@@ -176,8 +176,8 @@ func registerError(prototype interface{}, versionPrototypes ...interface{}) erro
 // The type of the data passed to Marshal must have previously been registered
 // with the vjson package or else an error is returned.
 // Marshal always serializes to the latest known version.
-func Marshal(inputInterface interface{}) ([]byte, error) {
-	input := reflect.ValueOf(inputInterface)
+func Marshal(v interface{}) ([]byte, error) {
+	input := reflect.ValueOf(v)
 
 	if input.Kind() == reflect.Ptr {
 		input = input.Elem()
@@ -224,8 +224,8 @@ func Marshal(inputInterface interface{}) ([]byte, error) {
 // the vjson package and the version number contained in the JSON must be within the range
 // of versions given to the Register function. Otherwise an error is returned.
 // Unmarshal upgrades the data to the latest version.
-func Unmarshal(valueInterface interface{}, data []byte) error {
-	value := reflect.ValueOf(valueInterface)
+func Unmarshal(data []byte, v interface{}) error {
+	value := reflect.ValueOf(v)
 
 	if kind := value.Kind(); kind != reflect.Ptr || value.IsNil() {
 		if kind == reflect.Invalid {

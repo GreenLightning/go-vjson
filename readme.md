@@ -30,7 +30,7 @@ func (u *User) MarshalJSON() ([]byte, error) {
 }
 
 func (u *User) UnmarshalJSON(data []byte) error {
-	return vjson.Unmarshal(u, data)
+	return vjson.Unmarshal(data, u)
 }
 
 // The individual versions have to be registered:

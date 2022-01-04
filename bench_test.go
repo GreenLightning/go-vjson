@@ -179,7 +179,7 @@ func (dynamic *DynamicByPointer) MarshalJSON() ([]byte, error) {
 }
 
 func (dynamic *Dynamic) UnmarshalJSON(data []byte) error {
-	return Unmarshal(dynamic, data)
+	return Unmarshal(data, dynamic)
 }
 
 func TestMarshal(t *testing.T) {
@@ -401,7 +401,7 @@ type OrderedV3 struct {
 }
 
 func (value *Ordered) UnmarshalJSON(data []byte) error {
-	return Unmarshal(value, data)
+	return Unmarshal(data, value)
 }
 
 type Unordered struct {
@@ -421,7 +421,7 @@ type UnorderedV3 struct {
 }
 
 func (value *Unordered) UnmarshalJSON(data []byte) error {
-	return Unmarshal(value, data)
+	return Unmarshal(data, value)
 }
 
 func BenchmarkUnmarshalSorting(b *testing.B) {
