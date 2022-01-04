@@ -87,6 +87,104 @@ func main() {
 }
 ```
 
+# Limitations
+
+The model of this package is that each type is versioned independently. This
+obviously results in a much looser coupling between types than say a single
+version number for an entire file, which might contain structs of many different
+types. In general, this has worked quite well for me, but it is something to be
+aware of. In particular, updating multiple structs together, where the update
+logic of one struct depends on the data of another struct might get a little
+more complicated.
+
+The standard library's `encoding/json` package does not provide any mechanism to
+store context for a particular operation (e.g. a `context.Context` as part of
+each `json.Encoder` and passed to `MarshalJSON`). Because of this, the registry
+of versioned types has to be stored in a global variable and we cannot provide
+individual encoders with different registries. This would also be useful for
+global version numbers, as the detected version could be stored in the context.
+
+The library depends on the `MarshalJSON`/`UnmarshalJSON` methods for interfacing
+with `encoding/json`. However, there are some tricky edge cases where these
+methods are not called because they have a pointer receiver instead of a value
+receiver:
+
+```
+package main
+
+import (
+	"encoding/json"
+	"fmt"
+)
+
+type A struct{}
+
+func (a *A) MarshalJSON() ([]byte, error) {
+	fmt.Print("A.MarshalJSON")
+	return []byte("null"), nil
+}
+
+type ParentA struct{
+	A A
+}
+
+type B struct{}
+
+func (b B) MarshalJSON() ([]byte, error) {
+	fmt.Print("B.MarshalJSON")
+	return []byte("null"), nil
+}
+
+type ParentB struct {
+	B B
+}
+
+func main() {
+	fmt.Print("A by value: ")
+	json.Marshal(A{}) // Does not call MarshalJSON!
+	fmt.Println()
+
+	fmt.Print("A by pointer: ")
+	json.Marshal(&A{}) // Ok.
+	fmt.Println()
+
+	fmt.Print("A embedded by value: ")
+	json.Marshal(ParentA{}) // Does not call MarshalJSON!
+	fmt.Println()
+
+	fmt.Print("A embedded by pointer: ")
+	json.Marshal(&ParentA{}) // Ok.
+	fmt.Println()
+
+	fmt.Print("B by value: ")
+	json.Marshal(B{})
+	fmt.Println()
+
+	fmt.Print("B by pointer: ")
+	json.Marshal(&B{})
+	fmt.Println()
+
+	fmt.Print("B embedded by value: ")
+	json.Marshal(ParentB{})
+	fmt.Println()
+
+	fmt.Print("B embedded by pointer: ")
+	json.Marshal(&ParentB{})
+	fmt.Println()
+}
+```
+
+Unfortunately, in these cases the structs would be serialized using the regular
+`encoding/json` approach, thus most likely producing valid JSON but without a
+version number and ignoring the conversions done by `vjson` (`Pack` methods).
+
+To avoid these corner cases, follow these two rules:
+
+- If a struct is placed in another struct by value, make its `MarshalJSON()`
+  method have a value receiver.
+- Always make sure that you pass a pointer to `json.Marshal()` (unless the
+  structs `MarshalJSON()` method already has a value receiver).
+
 # Future Work
 
 This section contains some ideas for future improvements.
