@@ -682,3 +682,35 @@ func TestUnmarshalRawError(t *testing.T) {
 		t.Fatal("wrong error:", err)
 	}
 }
+
+
+type UnaddressableWithPack struct {
+	Message string
+}
+
+// Note the value receiver here!
+func (value UnaddressableWithPack) MarshalJSON() ([]byte, error) {
+	return Marshal(value)
+}
+
+type UnaddressableWithPackV1 struct {
+	Message string
+}
+
+func (latest *UnaddressableWithPackV1) Pack(value *UnaddressableWithPack) error {
+	latest.Message = value.Message
+	return nil
+}
+
+func TestMarshalUnaddressableWithPack(t *testing.T) {
+	resetRegistry()
+	Register(UnaddressableWithPack{}, UnaddressableWithPackV1{})
+	data, err := json.Marshal(UnaddressableWithPack{Message:"Hello"})
+	if err != nil {
+		t.Fatal("unexpected err:", err)
+	}
+	str := string(data)
+	if !strings.Contains(str, `"Message":"Hello"`) {
+		t.Fatal("wrong data:", str)
+	}
+}

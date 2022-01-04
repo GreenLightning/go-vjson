@@ -190,7 +190,26 @@ func Marshal(v interface{}) ([]byte, error) {
 
 	value := reflect.New(entry.marshal.rtype)
 	if entry.marshal.packFunc.IsValid() {
-		err := callErrorFunction(entry.marshal.packFunc, value, input.Addr())
+		var pointer reflect.Value
+		if input.CanAddr() {
+			pointer = input.Addr()
+		} else {
+			// Workaround for the case where input is not addressable,
+			// but we have found a pack method, which expects a pointer.
+			//
+			// We want to allow this because json.Marshal() allows unaddressable
+			// values as well and we don't want to make a special exception for
+			// types that have a pack method, because then adding a pack method
+			// could introduce errors at runtime.
+			//
+			// Therefore we have to take the hit and make an addressable copy
+			// of input.
+			//
+			// See TestMarshalUnaddressableWithPack.
+			pointer = reflect.New(input.Type())
+			pointer.Elem().Set(input)
+		}
+		err := callErrorFunction(entry.marshal.packFunc, value, pointer)
 		if err != nil {
 			return nil, err
 		}
