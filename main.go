@@ -108,14 +108,23 @@ func registerError(prototype interface{}, versionPrototypes ...interface{}) erro
 			for i := 0; i < context.rtype.NumField(); i++ {
 				dstField := context.rtype.Field(i)
 				srcName := dstField.Name
+				required := false
 				if tag, ok := dstField.Tag.Lookup("vjson"); ok {
 					if tag == "" {
 						continue
 					}
 					srcName = tag
+					required = true
 				}
 				srcField, ok := lastType.FieldByName(srcName)
+				// ignore fields of embedded structs
+				if ok && len(srcField.Index) != 1 {
+					ok = false
+				}
 				if !ok {
+					if required {
+						return fmt.Errorf("field %s in %v has tag %s, but there is no such field in %v", dstField.Name, context.rtype, srcName, lastType)
+					}
 					continue
 				}
 				if srcField.Type != dstField.Type {

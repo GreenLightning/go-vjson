@@ -413,6 +413,33 @@ func TestUnmarshalRenaming(t *testing.T) {
 	}
 }
 
+type BadRenaming struct {
+	X string
+	Y string
+}
+
+type BadRenamingV1 struct {
+	A string
+	B string
+}
+
+type BadRenamingV2 struct {
+	X string `vjson:"Foo"`
+	Y string
+}
+
+func TestRegisterBadRenaming(t *testing.T) {
+	resetRegistry()
+	err := registerError(BadRenaming{}, BadRenamingV1{}, BadRenamingV2{})
+
+	if err == nil {
+		t.Fatal("missing error")
+	}
+	if !strings.Contains(err.Error(), "no such field") {
+		t.Fatal("unexpected err:", err)
+	}
+}
+
 type Upgrade struct {
 	BA string
 }
