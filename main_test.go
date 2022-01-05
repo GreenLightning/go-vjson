@@ -208,6 +208,64 @@ func TestUnmarshalSimpleNull(t *testing.T) {
 	}
 }
 
+type ReservedA struct {
+	Version int
+}
+
+type ReservedAV1 struct {}
+
+func TestRegisterReservedA(t *testing.T) {
+	resetRegistry()
+	err := registerError(ReservedA{}, ReservedAV1{})
+
+	if err == nil {
+		t.Fatal("missing error")
+	}
+	if !strings.Contains(err.Error(), "reserved") {
+		t.Fatal("unexpected err:", err)
+	}
+}
+
+type ReservedB struct {}
+
+type ReservedBChild struct {
+	Version int
+}
+
+type ReservedBV1 struct {
+	ReservedBChild
+}
+
+func TestRegisterReservedB(t *testing.T) {
+	resetRegistry()
+	err := registerError(ReservedB{}, ReservedBV1{})
+
+	if err == nil {
+		t.Fatal("missing error")
+	}
+	if !strings.Contains(err.Error(), "embedded") {
+		t.Fatal("unexpected err:", err)
+	}
+}
+
+type ReservedC struct {}
+
+type ReservedCV1 struct {
+	Version string
+}
+
+func TestRegisterReservedC(t *testing.T) {
+	resetRegistry()
+	err := registerError(ReservedC{}, ReservedCV1{})
+
+	if err == nil {
+		t.Fatal("missing error")
+	}
+	if !strings.Contains(err.Error(), "must have type int") {
+		t.Fatal("unexpected err:", err)
+	}
+}
+
 type Empty struct{}
 
 func (value *Empty) MarshalJSON() ([]byte, error) {

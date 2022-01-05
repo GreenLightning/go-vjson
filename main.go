@@ -78,6 +78,10 @@ func registerError(prototype interface{}, versionPrototypes ...interface{}) erro
 		return fmt.Errorf("must provide at least one version prototype")
 	}
 
+	if _, ok := entryType.FieldByName("Version"); ok {
+		return fmt.Errorf("type %v must not contain a field named Version, as it is reserved for vjson", entryType)
+	}
+
 	var entry entry
 	entry.latestVersion = len(versionPrototypes)
 	entry.versions = make(map[int]versionContext)
@@ -155,6 +159,12 @@ func registerError(prototype interface{}, versionPrototypes ...interface{}) erro
 	}
 
 	if field, ok := lastType.FieldByName("Version"); ok {
+		if len(field.Index) != 1 {
+			return fmt.Errorf("Version field in %v must be a top-level field, but is in an embedded struct", lastType)
+		}
+		if field.Type.Kind() != reflect.Int {
+			return fmt.Errorf("Version field in %v must have type int but is %v", lastType, field.Type)
+		}
 		entry.marshal.versionField = field.Index[0]
 	} else {
 		entry.marshal.versionField = -1
