@@ -96,6 +96,18 @@ func TestRegisterTwice(t *testing.T) {
 	}
 }
 
+func TestVersionRegisteredTwice(t *testing.T) {
+	resetRegistry()
+	err := registerError(Simple{}, SimpleV1{}, SimpleV1{})
+
+	if err == nil {
+		t.Fatal("missing error")
+	}
+	if !strings.Contains(err.Error(), "struct vjson.SimpleV1 for version 2 was already passed earlier") {
+		t.Fatal("unexpected err:", err)
+	}
+}
+
 func TestRegisterNonStruct(t *testing.T) {
 	resetRegistry()
 	err := registerError(1, SimpleV1{})

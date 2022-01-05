@@ -82,6 +82,9 @@ func registerError(prototype interface{}, versionPrototypes ...interface{}) erro
 	entry.latestVersion = len(versionPrototypes)
 	entry.versions = make(map[int]versionContext)
 
+	seenTypes := make(map[reflect.Type]bool)
+	seenTypes[entryType] = true
+
 	var lastType reflect.Type
 	for index, versionPrototype := range versionPrototypes {
 		var context versionContext
@@ -90,6 +93,12 @@ func registerError(prototype interface{}, versionPrototypes ...interface{}) erro
 		if context.rtype.Kind() != reflect.Struct {
 			return fmt.Errorf("only structs are allowed, but found %v for version %d", context.rtype, index+1)
 		}
+
+		if seenTypes[context.rtype] {
+			return fmt.Errorf("struct %v for version %d was already passed earlier in the same call to register", context.rtype, index+1)
+		}
+
+		seenTypes[context.rtype] = true
 
 		if lastType != nil {
 			for i := 0; i < context.rtype.NumField(); i++ {
