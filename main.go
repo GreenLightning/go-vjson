@@ -136,11 +136,32 @@ func registerError(prototype interface{}, versionPrototypes ...interface{}) erro
 			context.upgradeFunc = upgradeMethod.Func
 		}
 
+		if index+1 < len(versionPrototypes) {
+			if _, ok := reflect.PtrTo(context.rtype).MethodByName("Pack"); ok {
+				return fmt.Errorf("detected Pack method on %v, which is not the latest version", context.rtype)
+			}
+			if _, ok := reflect.PtrTo(context.rtype).MethodByName("Unpack"); ok {
+				return fmt.Errorf("detected Unpack method on %v, which is not the latest version", context.rtype)
+			}
+		}
+
 		entry.versions[index+1] = context
 		lastType = context.rtype
 	}
 
 	entry.marshal.rtype = lastType
+	if field, ok := lastType.FieldByName("Version"); ok {
+		if len(field.Index) != 1 {
+			return fmt.Errorf("Version field in %v must be a top-level field, but is in an embedded struct", lastType)
+		}
+		if field.Type.Kind() != reflect.Int {
+			return fmt.Errorf("Version field in %v must have type int but is %v", lastType, field.Type)
+		}
+		entry.marshal.versionField = field.Index[0]
+	} else {
+		entry.marshal.versionField = -1
+	}
+
 	if packMethod, ok := reflect.PtrTo(lastType).MethodByName("Pack"); ok {
 		entry.marshal.packFunc = packMethod.Func
 	} else {
@@ -156,18 +177,6 @@ func registerError(prototype interface{}, versionPrototypes ...interface{}) erro
 			mapping := mapping{src: srcField.Index[0], dst: dstField.Index[0]}
 			entry.marshal.mappings = append(entry.marshal.mappings, mapping)
 		}
-	}
-
-	if field, ok := lastType.FieldByName("Version"); ok {
-		if len(field.Index) != 1 {
-			return fmt.Errorf("Version field in %v must be a top-level field, but is in an embedded struct", lastType)
-		}
-		if field.Type.Kind() != reflect.Int {
-			return fmt.Errorf("Version field in %v must have type int but is %v", lastType, field.Type)
-		}
-		entry.marshal.versionField = field.Index[0]
-	} else {
-		entry.marshal.versionField = -1
 	}
 
 	if unpackMethod, ok := reflect.PtrTo(lastType).MethodByName("Unpack"); ok {

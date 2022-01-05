@@ -212,7 +212,7 @@ type ReservedA struct {
 	Version int
 }
 
-type ReservedAV1 struct {}
+type ReservedAV1 struct{}
 
 func TestRegisterReservedA(t *testing.T) {
 	resetRegistry()
@@ -226,7 +226,7 @@ func TestRegisterReservedA(t *testing.T) {
 	}
 }
 
-type ReservedB struct {}
+type ReservedB struct{}
 
 type ReservedBChild struct {
 	Version int
@@ -248,7 +248,7 @@ func TestRegisterReservedB(t *testing.T) {
 	}
 }
 
-type ReservedC struct {}
+type ReservedC struct{}
 
 type ReservedCV1 struct {
 	Version string
@@ -262,6 +262,50 @@ func TestRegisterReservedC(t *testing.T) {
 		t.Fatal("missing error")
 	}
 	if !strings.Contains(err.Error(), "must have type int") {
+		t.Fatal("unexpected err:", err)
+	}
+}
+
+type WrongPackA struct{}
+
+type WrongPackAV1 struct{}
+
+type WrongPackAV2 struct{}
+
+func (latest *WrongPackAV1) Pack(value *WrongPackA) error {
+	return nil
+}
+
+func TestRegisterWrongPackA(t *testing.T) {
+	resetRegistry()
+	err := registerError(WrongPackA{}, WrongPackAV1{}, WrongPackAV2{})
+
+	if err == nil {
+		t.Fatal("missing error")
+	}
+	if !strings.Contains(err.Error(), "detected Pack method on") {
+		t.Fatal("unexpected err:", err)
+	}
+}
+
+type WrongUnpackA struct{}
+
+type WrongUnpackAV1 struct{}
+
+type WrongUnpackAV2 struct{}
+
+func (latest *WrongUnpackAV1) Unpack(value *WrongUnpackA) error {
+	return nil
+}
+
+func TestRegisterWrongUnpackA(t *testing.T) {
+	resetRegistry()
+	err := registerError(WrongUnpackA{}, WrongUnpackAV1{}, WrongUnpackAV2{})
+
+	if err == nil {
+		t.Fatal("missing error")
+	}
+	if !strings.Contains(err.Error(), "detected Unpack method on") {
 		t.Fatal("unexpected err:", err)
 	}
 }
@@ -753,7 +797,6 @@ func TestUnmarshalRawError(t *testing.T) {
 	}
 }
 
-
 type UnaddressableWithPack struct {
 	Message string
 }
@@ -775,7 +818,7 @@ func (latest *UnaddressableWithPackV1) Pack(value *UnaddressableWithPack) error 
 func TestMarshalUnaddressableWithPack(t *testing.T) {
 	resetRegistry()
 	Register(UnaddressableWithPack{}, UnaddressableWithPackV1{})
-	data, err := json.Marshal(UnaddressableWithPack{Message:"Hello"})
+	data, err := json.Marshal(UnaddressableWithPack{Message: "Hello"})
 	if err != nil {
 		t.Fatal("unexpected err:", err)
 	}
