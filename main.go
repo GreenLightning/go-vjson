@@ -107,7 +107,7 @@ func registerError(prototype interface{}, versionPrototypes ...interface{}) erro
 		if lastType != nil {
 			for i := 0; i < context.rtype.NumField(); i++ {
 				dstField := context.rtype.Field(i)
-				
+
 				srcName, srcRequired := dstField.Name, false
 				if tag, ok := dstField.Tag.Lookup("vjson"); ok {
 					if tag == "" {
@@ -115,7 +115,7 @@ func registerError(prototype interface{}, versionPrototypes ...interface{}) erro
 					}
 					srcName, srcRequired = tag, true
 				}
-			
+
 				srcField, ok := topLevelFieldByName(lastType, srcName)
 				if !ok {
 					if srcRequired {
@@ -123,7 +123,7 @@ func registerError(prototype interface{}, versionPrototypes ...interface{}) erro
 					}
 					continue
 				}
-			
+
 				if srcField.Type != dstField.Type {
 					if srcField.Name != dstField.Name {
 						return fmt.Errorf("cannot copy field %s (%v) in %v to field %s (%v) in %v because they have different types", srcField.Name, srcField.Type, lastType, dstField.Name, dstField.Type, context.rtype)
@@ -140,6 +140,13 @@ func registerError(prototype interface{}, versionPrototypes ...interface{}) erro
 		// The upgrade method must have a pointer receiver,
 		// because it is meant to modify the receiver.
 		if upgradeMethod, ok := reflect.PtrTo(context.rtype).MethodByName("Upgrade"); ok {
+			if lastType == nil {
+				return fmt.Errorf("cannot have Upgrade method on first version %v", context.rtype)
+			}
+			err := validateMethod(upgradeMethod, reflect.PtrTo(lastType))
+			if err != nil {
+				return err
+			}
 			context.upgradeFunc = upgradeMethod.Func
 		}
 
@@ -170,6 +177,10 @@ func registerError(prototype interface{}, versionPrototypes ...interface{}) erro
 	}
 
 	if packMethod, ok := reflect.PtrTo(lastType).MethodByName("Pack"); ok {
+		err := validateMethod(packMethod, reflect.PtrTo(entryType))
+		if err != nil {
+			return err
+		}
 		entry.marshal.packFunc = packMethod.Func
 	} else {
 		for i := 0; i < entryType.NumField(); i++ {
@@ -187,6 +198,10 @@ func registerError(prototype interface{}, versionPrototypes ...interface{}) erro
 	}
 
 	if unpackMethod, ok := reflect.PtrTo(lastType).MethodByName("Unpack"); ok {
+		err := validateMethod(unpackMethod, reflect.PtrTo(entryType))
+		if err != nil {
+			return err
+		}
 		entry.unmarshal.unpackFunc = unpackMethod.Func
 	} else {
 		for i := 0; i < lastType.NumField(); i++ {
@@ -204,6 +219,32 @@ func registerError(prototype interface{}, versionPrototypes ...interface{}) erro
 	}
 
 	entryByType[entryType] = entry
+	return nil
+}
+
+var errorType = reflect.TypeOf((*error)(nil)).Elem()
+
+func validateMethod(method reflect.Method, expectedArgument reflect.Type) error {
+	// receiver and argument
+	if method.Type.NumIn() != 2 {
+		return fmt.Errorf("%s method has wrong signature '%v'; must have two arguments (one receiver and one regular argument)", method.Name, method.Type)
+	}
+	in := method.Type.In(1)
+	if in != expectedArgument {
+		return fmt.Errorf("%s method has wrong signature '%v'; second argument should be %v", method.Name, method.Type, expectedArgument)
+	}
+	outOk := true
+	if method.Type.NumOut() > 1 {
+		outOk = false
+	} else if method.Type.NumOut() == 1 {
+		out := method.Type.Out(0)
+		if out != errorType {
+			outOk = false
+		}
+	}
+	if !outOk {
+		return fmt.Errorf("%s method has wrong signature '%v'; must have error or void return type", method.Name, method.Type)
+	}
 	return nil
 }
 

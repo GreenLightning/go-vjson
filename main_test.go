@@ -440,6 +440,48 @@ func TestRegisterBadRenaming(t *testing.T) {
 	}
 }
 
+type BadUpgradeA struct {}
+
+type BadUpgradeAV1 struct {}
+
+type BadUpgradeAV2 struct {}
+
+func (v2 *BadUpgradeAV2) Upgrade(v1 *BadUpgradeAV1) bool {
+	return false
+}
+
+func TestRegisterBadUpgradeA(t *testing.T) {
+	resetRegistry()
+	err := registerError(BadUpgradeA{}, BadUpgradeAV1{}, BadUpgradeAV2{})
+
+	if err == nil {
+		t.Fatal("missing error")
+	}
+	if !strings.Contains(err.Error(), "must have error or void return type") {
+		t.Fatal("unexpected err:", err)
+	}
+}
+
+type BadUpgradeB struct {}
+
+type BadUpgradeBV1 struct {}
+
+type BadUpgradeBV2 struct {}
+
+func (v2 *BadUpgradeBV2) Upgrade(v1 *BadUpgradeB) {}
+
+func TestRegisterBadUpgradeB(t *testing.T) {
+	resetRegistry()
+	err := registerError(BadUpgradeB{}, BadUpgradeBV1{}, BadUpgradeBV2{})
+
+	if err == nil {
+		t.Fatal("missing error")
+	}
+	if !strings.Contains(err.Error(), "second argument should be") {
+		t.Fatal("unexpected err:", err)
+	}
+}
+
 type Upgrade struct {
 	BA string
 }
