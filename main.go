@@ -107,32 +107,30 @@ func registerError(prototype interface{}, versionPrototypes ...interface{}) erro
 		if lastType != nil {
 			for i := 0; i < context.rtype.NumField(); i++ {
 				dstField := context.rtype.Field(i)
-				srcName := dstField.Name
-				required := false
+				
+				srcName, srcRequired := dstField.Name, false
 				if tag, ok := dstField.Tag.Lookup("vjson"); ok {
 					if tag == "" {
 						continue
 					}
-					srcName = tag
-					required = true
+					srcName, srcRequired = tag, true
 				}
-				srcField, ok := lastType.FieldByName(srcName)
-				// ignore fields of embedded structs
-				if ok && len(srcField.Index) != 1 {
-					ok = false
-				}
+			
+				srcField, ok := topLevelFieldByName(lastType, srcName)
 				if !ok {
-					if required {
+					if srcRequired {
 						return fmt.Errorf("field %s in %v has tag %s, but there is no such field in %v", dstField.Name, context.rtype, srcName, lastType)
 					}
 					continue
 				}
+			
 				if srcField.Type != dstField.Type {
 					if srcField.Name != dstField.Name {
 						return fmt.Errorf("cannot copy field %s (%v) in %v to field %s (%v) in %v because they have different types", srcField.Name, srcField.Type, lastType, dstField.Name, dstField.Type, context.rtype)
 					}
 					return fmt.Errorf("field %s has different types in %v (%v) and %v (%v)", srcField.Name, lastType, srcField.Type, context.rtype, dstField.Type)
 				}
+
 				mapping := mapping{src: srcField.Index[0], dst: dstField.Index[0]}
 				context.mappings = append(context.mappings, mapping)
 			}
@@ -176,7 +174,7 @@ func registerError(prototype interface{}, versionPrototypes ...interface{}) erro
 	} else {
 		for i := 0; i < entryType.NumField(); i++ {
 			srcField := entryType.Field(i)
-			dstField, ok := lastType.FieldByName(srcField.Name)
+			dstField, ok := topLevelFieldByName(lastType, srcField.Name)
 			if !ok {
 				continue
 			}
@@ -193,7 +191,7 @@ func registerError(prototype interface{}, versionPrototypes ...interface{}) erro
 	} else {
 		for i := 0; i < lastType.NumField(); i++ {
 			srcField := lastType.Field(i)
-			dstField, ok := entryType.FieldByName(srcField.Name)
+			dstField, ok := topLevelFieldByName(entryType, srcField.Name)
 			if !ok {
 				continue
 			}
@@ -207,6 +205,15 @@ func registerError(prototype interface{}, versionPrototypes ...interface{}) erro
 
 	entryByType[entryType] = entry
 	return nil
+}
+
+func topLevelFieldByName(rtype reflect.Type, name string) (reflect.StructField, bool) {
+	field, ok := rtype.FieldByName(name)
+	// ignore fields of embedded structs
+	if ok && len(field.Index) != 1 {
+		ok = false
+	}
+	return field, ok
 }
 
 // Marshal is like json.Marshal but adds a version number to the generated JSON.
