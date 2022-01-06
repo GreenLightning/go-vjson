@@ -191,6 +191,61 @@ If the `Version` key is missing, `vjson` assumes version 1 for backward
 compatibility, so output from the original program, which did not use `vjson`,
 is accepted as well.
 
+# Features
+
+Marshaling always produces the latest version. During unmarshaling the version
+is read from the data and the appropriate version struct is used. If the data is
+not at the latest version, the version struct is upgraded to the next version
+until it is the latest version.
+
+Upgrading involves copying over fields with the same name from the older
+version. Tags can be used to specify the name of different field whose value
+should be copied into the tagged field. This is useful for renaming fields or
+using the value of a different field as the default value for a field (see
+examples in the tutorial and introduction). For the copying to work, the types
+of the fields must match. `Register` will panic if this is not the case. Use an
+empty tag to disable copying even if a field with the same name exists. Tags for
+the `encoding/json` package can be used on the version structs. They are ignored
+by the vjson package.
+
+Additionally, an optional `Upgrade` method can be defined on a version struct
+taking as an argument a pointer to the previous version (again, see introduction
+for an example). This function is called for upgrading after the fields have
+been copied and can contain custom upgrade logic.
+
+The latest version struct can define optional `Pack` and `Unpack` methods to
+convert between the general-use struct and the version struct. If these methods
+are not defined, conversion is performed by copying fields of the same name
+(ignoring tags). Unlike upgrading, if one of these methods is defined, no
+copying is performed for the corresponding conversion. Example (see `examples\pack.go`):
+
+```go
+type Example struct {
+	Value int
+}
+
+type ExampleV1 struct {
+	Value string
+}
+
+func (latest *ExampleV1) Pack(example *Example) {
+	latest.Value = fmt.Sprintf("%x", example.Value)
+}
+
+func (latest *ExampleV1) Unpack(example *Example) error {
+	_, err := fmt.Sscanf(latest.Value, "%x", &example.Value)
+	return err
+}
+```
+
+The `Upgrade`, `Pack` and `Unpack` methods may optionally have a return value of
+type `error`.
+
+To slightly improve serialization speed the latest version struct should have a
+`Version int` field, which is automatically used by the library to add the
+version number to the generated JSON. If not present, the generated JSON has to
+be copied to add the version number.
+
 # Limitations
 
 The model of this package is that each type is versioned independently. This
