@@ -6,12 +6,12 @@ building backward-compatible formats.
 Each struct is versioned independently using an integer version number, which is
 added to the serialized JSON under the `"Version"` key. In the code, the data
 format of each version is explicitly defined in a separate struct declaration.
-Advanced features include automatic renaming using tags and running arbitrary
-code during version upgrades.
+Advanced features include automatic renaming using tags and running custom
+functions during version upgrades.
 
 For example (`examples/introduction.go`):
 
-```
+```go
 // The struct used by the rest of the application:
 type User struct {
 	ID          string // in hex
@@ -96,15 +96,16 @@ The standard library's `encoding/json` package does not provide any mechanism to
 store context for a particular operation (e.g. a `context.Context` as part of
 each `json.Encoder` and passed to `MarshalJSON`). Because of this, the registry
 of versioned types has to be stored in a global variable and we cannot provide
-individual encoders with different registries. This would also be useful for
-global version numbers, as the detected version could be stored in the context.
+individual encoders with different registries. A context for `json.Unmarshal`
+would also be useful for global version numbers, as the detected version could
+be stored in the context.
 
 The library depends on the `MarshalJSON`/`UnmarshalJSON` methods for interfacing
 with `encoding/json`. However, there are some tricky edge cases where these
 methods are not called because they have a pointer receiver instead of a value
 receiver:
 
-```
+```go
 package main
 
 import (
@@ -114,6 +115,8 @@ import (
 
 type A struct{}
 
+// Change this to a value receiver (func (a A) ...) to make it work
+// in all four test cases below.
 func (a *A) MarshalJSON() ([]byte, error) {
 	fmt.Print("A.MarshalJSON")
 	return []byte("null"), nil
@@ -121,17 +124,6 @@ func (a *A) MarshalJSON() ([]byte, error) {
 
 type ParentA struct{
 	A A
-}
-
-type B struct{}
-
-func (b B) MarshalJSON() ([]byte, error) {
-	fmt.Print("B.MarshalJSON")
-	return []byte("null"), nil
-}
-
-type ParentB struct {
-	B B
 }
 
 func main() {
@@ -143,28 +135,12 @@ func main() {
 	json.Marshal(&A{}) // Ok.
 	fmt.Println()
 
-	fmt.Print("A embedded by value: ")
+	fmt.Print("ParentA by value: ")
 	json.Marshal(ParentA{}) // Does not call MarshalJSON!
 	fmt.Println()
 
-	fmt.Print("A embedded by pointer: ")
+	fmt.Print("ParentA by pointer: ")
 	json.Marshal(&ParentA{}) // Ok.
-	fmt.Println()
-
-	fmt.Print("B by value: ")
-	json.Marshal(B{})
-	fmt.Println()
-
-	fmt.Print("B by pointer: ")
-	json.Marshal(&B{})
-	fmt.Println()
-
-	fmt.Print("B embedded by value: ")
-	json.Marshal(ParentB{})
-	fmt.Println()
-
-	fmt.Print("B embedded by pointer: ")
-	json.Marshal(&ParentB{})
 	fmt.Println()
 }
 ```
@@ -178,7 +154,7 @@ To avoid these corner cases, follow these two rules:
 - If a struct is placed in another struct by value, make its `MarshalJSON()`
   method have a value receiver.
 - Always make sure that you pass a pointer to `json.Marshal()` (unless the
-  structs `MarshalJSON()` method already has a value receiver).
+  struct already has a `MarshalJSON()` method with a value receiver).
 
 # Future Work
 
@@ -201,8 +177,13 @@ This would have several advantages:
   method that returns the different possible versions.
 - Alternatively, it would be possible to build encoders/decoders with individual
   registries, instead of the global registry system.
-- Finally, the serialization speed of the library would match that of
-  `encoding/json`, since the additional copy to add the version can be avoided.
+- Finally, the serialization speed of the library could be improved. Currently,
+  there is some overhead from copying the data multiple times. One copy is used
+  to insert the version number (which can be avoided by adding a `Version` field
+  to the struct for the latest version). A second copy is necessary to copy the
+  result from `MarshalJSON` into the internal output buffer of the `json`
+  package. I think both of these could be avoided by integrating the logic
+  directly into the encoder.
 
 A disadvantage would be that changes to `encoding/json` would have to be merged
 regularly.
@@ -227,7 +208,7 @@ forking the `encoding/json` package as described above.
 
 An example where this would be useful:
 
-```
+```go
 type Node interface{}
 
 type Parent struct {
