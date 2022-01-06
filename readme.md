@@ -82,6 +82,115 @@ func main() {
 }
 ```
 
+# Tutorial
+
+`vjson` can be added to a working program when required. For example, given a
+ social media application that stores posts in JSON:
+
+```go
+package main
+
+import (
+	"encoding/json"
+	"fmt"
+)
+
+type Post struct {
+	Author        string
+	Text          string
+	NumberOfLikes int
+}
+
+func main() {
+	input := []byte(`{ "Author": "Dolores", "Text": "Lorem ipsum dolor sit amet...", "NumberOfLikes": 99 }`)
+
+	var post Post
+	err := json.Unmarshal(input, &post)
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Printf("Post: %+v\n", post)
+}
+```
+
+Assuming you want to rename `NumberOfLikes` to just `Likes`, first copy `Post`
+to `PostV1` to preserve the data format of the first version (you can also
+choose a different name) and add an `init` function to register this version.
+
+```go
+type Post struct {
+	Author        string
+	Text          string
+	NumberOfLikes int
+}
+
+func init() {
+	vjson.Register(Post{}, PostV1{})
+}
+
+type PostV1 struct {
+	Author        string
+	Text          string
+	NumberOfLikes int
+}
+```
+
+To be compatible with `encoding/json` we also add some boilerplate functions
+that forward to `vjson`:
+
+```go
+func (p *Post) MarshalJSON() ([]byte, error) {
+	return vjson.Marshal(p)
+}
+
+func (p *Post) UnmarshalJSON(data []byte) error {
+	return vjson.Unmarshal(data, p)
+}
+```
+
+This iteration of the program is now using `vjson` but otherwise almost
+identical to the previous iteration. The only slight difference is that if you
+call `json.Marshal(&post)`, the output will contain a version number:
+`{"Version":1,"Author":"Dolores","Text":"Lorem ipsum dolor sit
+amet...","NumberOfLikes":99}`.
+
+Now, to actually change the name of the field, create a new version struct with
+the new name (don't forget to register it). The tag on the `Likes` field tells
+`vjson` that this field was renamed, so that the value of the old field is
+copied over:
+
+```go
+type Post struct {
+	Author string
+	Text   string
+	Likes  int
+}
+
+func init() {
+	vjson.Register(Post{}, PostV1{}, PostV2{}) // added PostV2{}
+}
+
+type PostV1 struct { ... } // unchanged
+
+type PostV2 struct {
+	Author string
+	Text   string
+	Likes  int `vjson:"NumberOfLikes"`
+}
+```
+
+That's it. This iteration of the program now accepts both of these JSON objects:
+
+```
+{ "Author": "Dolores", "Text": "Lorem ipsum dolor sit amet...", "NumberOfLikes": 99 }
+{ "Version": 2, "Author": "Dolores", "Text": "Lorem ipsum dolor sit amet...", "Likes": 99 }
+```
+
+If the `Version` key is missing, `vjson` assumes version 1 for backward
+compatibility, so output from the original program, which did not use `vjson`,
+is accepted as well.
+
 # Limitations
 
 The model of this package is that each type is versioned independently. This
